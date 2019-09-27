@@ -1,9 +1,8 @@
-from classes import AA, Chain, Pdb
+from classes import AA, Chain, Pdb, read_pdb, read_fasta
 
-s = Pdb('ubiquitin.pdb', 1, 0, ' CA ')
-ss = s.read()
-for m in ss:
-    for a in m:
-        print("%-6s%5s %4s %3s %s%4s    %8s%8s%8s%6s%6s           %3s"%tuple(a))
-    print("ENDMDL")
-
+s = Pdb(read_pdb('6MUN.pdb', '1', '0', []))
+#ss = Pdb(s.aa_feature(3))
+#ss.write_pdb()
+#print(s.atom_ids())
+print(s.seq())
+#print(read_fasta('UBQLN2.fasta'))

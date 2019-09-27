@@ -1,76 +1,89 @@
+    
+    
 class Pdb(object):
 
-    def __init__(self, filename, w_model = '0', w_chain = '0', w_atoms = []):
-        self.f  = filename
-        self.m  = w_model
-        self.ch = w_chain
-        self.a  = w_atoms
-#        read(filename, w_model, w_chain, w_atoms)
-        
-#        self.atom_ids    = 
-#        self.atom_names  = 
-#        self.resi_names  = 
-#        self.chain_ids   = 
-#        self.resi_ids    = 
-#        self.atom_x      = 
-#        self.atom_y      = 
-#        self.atom_z      = 
-#        self.bfactor     = 
-#        self.atom_type   = 
-        
-        
+    def __init__(self, structure):
 
-
-
-    def read(self):
+        self.structure = structure
     
-        def parse_line(line, model):
-
-            atom = [line[:6], line[6:11], line[12:16], line[17:20],
-            line[21], line[22:26], line[30:38], line[38:46],
-            line[46:54], line[54:60], line[60:66], line[77:80]]
-            if self.ch == '0':                  ##parse all chains
-                if not len(self.a):             ###parse all atoms
-                    model.append(atom)
-                else:
-                    for at in self.a:           ###parse atoms
-                        if line[12:16] == at:
-                            model.append(atom)
-            elif line[21] == self.ch:           ##parse single chain
-                if not len(self.a):
-                    model.append(atom)
-                else:
-                    for at in self.a:
-                        if line[12:16] == at:
-                            model.append(atom)
     
+    def write_pdb(self, which = 1):
 
-        model = []
-        structure = []
-        with open(self.f, 'r') as pdb:
-            if self.m == '0':                                      #parse all_models
-                for line in pdb:
-                    if line[:4] == 'ATOM' or line[:6] == "HETATM":
-                        parse_line(line, model)
-                        print(len(model))######################################
-                    elif line.startswith('ENDMDL'):
-                        structure.append(model)
-                        model = []
+        n = which
+        for model in self.structure:
+            if n == which:
+                print("MODEL%9s"%which)
+                n += 1
             else:
-                is_ok = 'false'
-                for line in pdb:
-                    if is_ok == 'true':
-                        if line[:4] == 'ATOM' or line[:6] == "HETATM":
-                            parse_line(line, model)
-                            print(len(model))######################################
-                        elif line.startswith('ENDMDL'):
-                            structure.append(model)
-                            break
-                    elif line.startswith("MODEL%9s"%self.m):       #parse single model
-                        is_ok = 'true'
-        return structure
-        
-        
+                print("ENDMDL\nMODEL%9s"%n)
+                n += 1
+            for atom in model:
+                print("%-6s%5s %4s %3s %s%4s    %8s%8s%8s%6s%6s           %3s"%tuple(atom))
+        print("ENDMDL")
+    
+    def write_model(self, which):
+
+        print("MODEL%9s"%which)
+        for atom in self.structure[which-1]:
+            print("%-6s%5s %4s %3s %s%4s    %8s%8s%8s%6s%6s           %3s"%tuple(atom))
+        print("ENDMDL")
+    
+    def seq(self):
+        fasta = ''
+        for atom in self.structure[0]:
+            if atom[2] == ' CA ':
+                fasta += AA_code(atom[3])
+        return fasta
+    
+    def __select(self, which):
+
+        vec = []
+        for atom in self.structure[0]:
+            vec.append(atom[which])
+        return vec
+    
+    def record_type(self):
+        return self.__select(0)
+    
+    def atom_ids(self):
+        return self.__select(1)
+    
+    def atom_names(self):
+        return self.__select(2)
+    
+    def resi_names(self):
+        return self.__select(3)
+    
+    def chain_ids(self):
+        return self.__select(4)
+    
+    def resi_ids(self):
+        return self.__select(5)
+    
+    def atom_x(self):
+        return self.__select(6)
+    
+    def atom_y(self):
+        return self.__select(7)
+    
+    def atom_z(self):
+        return self.__select(8)
+    
+    def occupancy(self):
+        return self.__select(9)
+    
+    def bfactor(self):
+        return self.__select(10)
+    
+    def atom_type(self):
+        return self.__select(11)
+    
+    def aa_feature(self, which):
+        strctr = self.structure
+        for atom in strctr[0]:
+            atom[10] = aa_features[AA_code(atom[3])][which]
+        return strctr
+
 
 class Chain(object):
 
@@ -93,6 +106,8 @@ class Chain(object):
 class AA(object):
 
     def __init__(self, aa):
+        if len(aa) == 3:
+            aa = aa_names[resid]
         self.name = aa
         self.id = aa_features[aa][0]
         self.weight = aa_features[aa][1]
@@ -107,6 +122,93 @@ class AA(object):
         self.z = 0.0
 
 
+def read_pdb(filename, w_model = '0', w_chain = '0', w_atoms = []):
+    
+    def parse_line(line, model):
+
+        atom = [line[:6], line[6:11], line[12:16], line[17:20],
+        line[21], line[22:26], line[30:38], line[38:46],
+        line[46:54], line[54:60], line[60:66], line[77:80]]
+        if w_chain == '0':                         ##parse all chains
+            if not len(w_atoms):                   ###parse all atoms
+                model.append(atom)
+            else:
+                for at in w_atoms:                 ###parse atoms
+                    if line[12:16] == at:
+                        model.append(atom)
+        elif line[21] == w_chain:                  ##parse single chain
+            if not len(w_atoms):
+                model.append(atom)
+            else:
+                for at in w_atoms:
+                    if line[12:16] == at:
+                        model.append(atom)
+    
+    model = []
+    structure = []
+    with open(filename, 'r') as pdb:
+        if w_model == '0':                                 #parse all_models
+            for line in pdb:
+                if line[:4] == 'ATOM' or line[:6] == "HETATM":
+                    parse_line(line, model)
+                elif line.startswith('ENDMDL'):
+                    structure.append(model)
+                    model = []
+        else:
+            is_ok = 'false'
+            for line in pdb:
+                if is_ok == 'true':
+                    if line[:4] == 'ATOM' or line[:6] == "HETATM":
+                        parse_line(line, model)
+                    elif line.startswith('ENDMDL'):
+                        structure.append(model)
+                        break
+                elif line.startswith("MODEL%9s"%w_model):  #parse single model
+                    is_ok = 'true'
+    return structure
+
+
+def pdb_to_fasta(filename):
+
+    fasta = ''
+    with open(filename, 'r') as pdb:
+        for line in pdb:
+            if line.startswith('ENDMDL'):
+                break
+            elif line[:4] == 'ATOM' or line[:6] == 'HETATM':
+                if line[12:16] == ' CA ':
+                    resid = AA_code(line[17:20])
+                    fasta += resid
+    return fasta
+
+
+def read_fasta(filename):
+
+    fasta = ''
+    with open(filename, 'r') as pdb:
+        for line in pdb:
+            if line[:1] != '>':
+                fasta += line.rstrip('\n')
+    return fasta
+
+
+def AA_code(resid):
+
+    aa = {v: k for k, v in aa_names.items()}
+    if len(resid) == 3:
+        return aa[resid]
+    else:
+        return list(aa.keys())[list(aa.values()).index(resid)]
+
+
+aa_names = {
+    'A': 'ALA', 'C': 'CYS', 'D': 'ASP', 'E': 'GLU', 'F': 'PHE',
+    'G': 'GLY', 'H': 'HIS', 'I': 'ILE', 'K': 'LYS', 'L': 'LEU',
+    'M': 'MET', 'N': 'ASN', 'P': 'PRO', 'Q': 'GLN', 'R': 'ARG',
+    'S': 'SER', 'T': 'THR', 'V': 'VAL', 'W': 'TRP', 'Y': 'TYR'
+}
+
+##### 0 - id, 1 - weight, 2 - frequency, 3 - charge, 4 - polar, 5 - aromatic, 6 - hp_KD
 aa_features = {
     'I': ( 0, 131.175, 5.49,  0.0, 0.0, 0.0,  4.5 ),
     'V': ( 1, 117.148, 6.73,  0.0, 0.0, 0.0,  4.2 ),

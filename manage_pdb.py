@@ -1,4 +1,3 @@
-    
 
 
 def AA_features(resid):
@@ -27,16 +26,6 @@ def AA_features(resid):
         'K': (18, 146.189, 5.19,  1.0, 1.0, 0.0, -3.9 ),
         'R': (19, 174.203, 5.78,  1.0, 1.0, 0.0, -4.5 )
     }
-    seq_keys   =   list(aa_features.keys())
-    seq_values =   list(aa_features.values())
-
-    aa_id      =   [value[0] for value in seq_values]
-    weight     =   [value[1] for value in seq_values]
-    frequency  =   [value[2] for value in seq_values]
-    charge     =   [value[3] for value in seq_values]
-    polarity   =   [value[4] for value in seq_values]
-    aromatic   =   [value[5] for value in seq_values]
-    hp_KD      =   [value[6] for value in seq_values]
 
 
 def read_fasta(filename):
