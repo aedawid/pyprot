@@ -1,9 +1,17 @@
 import sys
-from PDB_menager import Pdb, read_pdb, read_fasta
+from PDB_menager import Pdb, read_pdb, read_fasta, AA_code
+
+
+#print(AA_code('ALA'))
+#print(AA_code('K'))
+#print(AA_code('1AB'))
+#print(AA_code('KKK'))
+
 
 s = Pdb(read_pdb('1A12.pdb', '0', '0', [' CA ']))
-print(s.seq_from_struct())
-print(s.ss_for_struct())
+print(s.non_standard_resi())
+#print(s.seq_from_struct())
+#print(s.ss_for_struct())
 #print(s.seq_from_header())
 #print(s.resi_names())
 #print(s.resi_ids())
@@ -15,8 +23,8 @@ print(s.ss_for_struct())
 #    print(k)
 
 
-print(s.compare_seqs())
-print(s.ss_for_seq())
+#print(s.outcome_seq())
+#print(s.ss_for_seq())
 #print(s.header['REMARK 465'])
 #print(s.header['SEQRES'])
 #print(len(s.header['HELIX']))
