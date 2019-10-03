@@ -1,14 +1,48 @@
     
-class Pdb(object):
-    """ """
+class PDB(object):
+    """Create PDB object from loaded 'structure'.
+       'structure' can be returned by function read_pdb(params).
+       PDB object has a form of multilayer list, where:
+       - the most external is 'structure', composed of:
+       -- N 'models', composed of:
+       --- M 'atoms', each atom has 12 string-type tokens with data
+    """
 
     def __init__(self, structure):
 
         self.structure = structure
+        """Return structure object."""
         self.header = HEADER
+        """Return global variable that keeps selected info from PDB header."""
+        self.record_type = self.__select(0)
+        """Return string list of record type ('ATOM' or 'HETATM') for all atoms. """
+        self.atom_ids = self.__select(1)
+        """Return string list of atom ids for all atoms. """
+        self.atom_names = self.__select(2)
+        """Return string list of atom names for all atoms."""
+        self.resi_names = self.__select(3)
+        """Return string list of residue names for all atoms."""
+        self.chain_ids = self.__select(4)
+        """Return string list of chain ids for all atoms."""
+        self.chains = self.__chains()
+        """Return codes of chains in current structure."""
+        self.resi_ids = self.__select(5)
+        """Return string list of residue ids for all atoms."""
+        self.atom_x = self.__select(6)
+        """Return string list of x coordinate for all atoms."""
+        self.atom_y = self.__select(7)
+        """Return string list of y coordinate for all atoms."""
+        self.atom_z = self.__select(8)
+        """Return string list of z coordinate for all atoms."""
+        self.occupancy = self.__select(9)
+        """Return string list of occupancy for all atoms."""
+        self.bfactor = self.__select(10)
+        """Return string list of bfactor for all atoms."""
+        self.atom_type = self.__select(11)
+        """Return string list of atom types for all atoms."""
     
     def write_pdb(self, which = 1):
-        """ """
+        """Write 'structure' in pdb format."""
         n = which
         for model in self.structure:
             if n == which:
@@ -22,14 +56,14 @@ class Pdb(object):
         print("ENDMDL")
     
     def write_model(self, which):
-        """ """
+        """Write chosen 'model' in pdb format."""
         print("MODEL%9s"%which)
         for atom in self.structure[which-1]:
             print("%-6s%5s %4s %3s %s%4s    %8s%8s%8s%6s%6s           %3s"%tuple(atom))
         print("ENDMDL")
     
     def seq_from_struct(self):
-        """ """
+        """Return AA sequences for chains from structure."""
         fasta = ''
         for atom in self.structure[0]:
             if atom[2] == ' CA ':
@@ -37,19 +71,36 @@ class Pdb(object):
         return fasta
     
     def seq_from_header(self):
-        """ """
+        """Return full AA seq derived from PDB header (taking missing residues)."""
         fasta = ''
         for row in self.header['SEQRES']:
-            tokens = row.split()
+            tokens = row.split()[3:]
             for t in tokens:
-                if len(t) == 3 and t.isalpha():
-                    fasta += AA_code(t)
+                fasta += AA_code(t)
         return fasta
     
+    def seq_ranges(self):
+        """Returns ranges for chains in full seq."""
+        c = self.header['SEQRES'][0].split()[1]
+        first = 0
+        last = 0
+        s_range=[]
+        for row in self.header['SEQRES']:
+            tokens = row.split()
+            n = len(tokens[3:])
+            if c != tokens[1]:
+                s_range.append((first, last-1, c))
+                c = tokens[1]
+                first = last
+                last = first + n
+            else:
+                last += n
+        return s_range
+    
     def ss_for_struct(self):
-        """ """
-        seq = self.seq_from_struct()
-        ids = self.resi_ids()
+        """Return secondary structure assignment for residues from structure."""
+        seq=self.seq_from_struct():
+        ids = self.__per_resi(self.resi_ids)
         ch_r = self.chain_ranges()
         ss = 'C'*len(seq)
         s = list(ss)
@@ -78,22 +129,29 @@ class Pdb(object):
         ss = "".join(s)
         return ss
     
-    def ss_for_seq(self, c = 'X'):
-        """ """
+    def ss_for_seq(self):
+        """Return secondary structure assignment for full seq, 'X' for unknown."""
         ss = ''
         for i in self.resi_list():
             ss += i[3]
         return ss
     
     def outcome_seq(self):
-        """ """
-        seq_full = list(self.seq_from_header())
+        """Return AA seq, where missing residues are marked as '-'."""
+        s = self.seq_from_header()
+        seq_full=########################????
+        for i in self.chains:
+            for j in s:
+                if i == j[0]:
+                    seq_full += j[1]
+                    break
         resi_list = self.resi_list()
         seq = ''
+        print(len(seq_full), len(resi_list))###############################
         if len(seq_full) != len(self.seq_from_struct()):
             for aa in range(0, len(seq_full)):
                 if seq_full[aa] != resi_list[aa][2]:
-                    print("ERROR: seq_from_struct + missing_resi differ from seq_from_header at position %s" %n)
+                    print("ERROR: seq_from_struct + missing_resi differ from seq_from_header at position %s" %aa)
                 elif resi_list[aa][4] == 'm':
                     seq += '-'
                 else:
@@ -103,12 +161,20 @@ class Pdb(object):
         return seq
     
     def resi_list(self):
-        """ """
+        """Return list of tuples for full AA seq for structure composed of given chains:
+           @1 - residue id
+           @2 - chain code
+           @3 - residue name (1 letter code)
+           @4 - secondary structure assignment: H, E, C, X - unknown
+           @5 - experimentally known coordinates: s - known, m - missing
+        """
         seq_struct = list(self.seq_from_struct())
+        print("struct_size: ", len(seq_struct))########################
         ss_struct = list(self.ss_for_struct())
-        r_ids = self.resi_ids()
-        c_ids = self.chain_ids()
-        missing = self.missing_resi()
+        r_ids = self.__per_resi(self.resi_ids)
+        c_ids = self.__per_resi(self.chain_ids)
+        missing = self.missing_resi(True)
+        print("missing size2: ", len(missing))#########################
         r_list = []
         for i in missing:
             r_list.append((int(i[2]), i[1], i[0], 'X', 'm'))
@@ -117,59 +183,53 @@ class Pdb(object):
         r_list = sorted(r_list, key = lambda tup: (tup[1], tup[0]))
         return r_list
     
-    def missing_resi(self):
-        """ """
+    def chain_resi(self, c):
+        """Return indexes for given chain in outcome sequence."""
+        r_list = self.resi_list()
+        c_range = []
+        for i in range(0, len(r_list)):
+            if c == r_list[i][1]:
+                c_range.append(i)
+        return c_range
+    
+    def missing_resi(self, per_chain=False):
+        """Return list of missing residues: resi name, chain, resi id."""
+        ch = self.chains
         missing = []
         for row in self.header['REMARK 465']:
             tokens = row.split()
             if len(tokens) == 3:
-                missing.append((AA_code(tokens[0]), tokens[1], tokens[2]))
+                print(tokens)#########################################
+                if per_chain == True:
+                    if tokens[1] in ch:
+                        missing.append((AA_code(tokens[0]), tokens[1], tokens[2]))
+                        print("appended ", len(missing))################################
+                else:
+                    missing.append((AA_code(tokens[0]), tokens[1], tokens[2]))
+        print("missing size1: ", len(missing))#########################
         return missing
     
     def non_standard_resi(self):
-        """ """
-        r_ids = self.resi_ids()
+        """Return list of non-standard AA in the structure."""
+        r_ids = self.resi_ids
+        r_ch = self.chain_ids
         resids=[]
         n=0
-        for res in self.resi_names():
+        for res in self.resi_names:
             if is_non_standard_AA(res):
-                resids.append((res, AA_code(res), r_ids[n]))
+                resids.append((res, AA_code(res), r_ids[n], r_ch[n]))
             n += 1
         return resids
     
-    def __select(self, which):
-        """ """
-        vec = []
-        for atom in self.structure[0]:
-            vec.append(atom[which])
-        return vec
-    
-    def record_type(self):
-        """ """
-        return self.__select(0)
-    
-    def atom_ids(self):
-        """ """
-        return self.__select(1)
-    
-    def atom_names(self):
-        """ """
-        return self.__select(2)
-    
-    def resi_names(self):
-        """ """
-        return self.__select(3)
-    
-    def chain_ids(self):
-        """ """
-        return self.__select(4)
-    
-    def chain_ranges(self):
-        """ """
-        ch_ids = self.chain_ids()
+    def chain_ranges(self, per_resi=True):
+        """Return list of ranges for chains; default per resi, else per atom."""
+        if per_resi == True:
+            ch_ids = self.__per_resi(self.chain_ids)
+        else:
+            ch_ids = self.chain_ids
         ranges = []
         if ch_ids[0] == ch_ids[len(ch_ids)-1]:
-            ranges.append((0, len(ch_ids)-1))
+            ranges.append((0, len(ch_ids)-1, ch_ids[0]))
         else:
             ch = ch_ids[0]
             first = 0
@@ -184,44 +244,55 @@ class Pdb(object):
                 n += 1
         return ranges
     
-    def resi_ids(self):
-        """ """
-        return self.__select(5)
-    
-    def atom_x(self):
-        """ """
-        return self.__select(6)
-    
-    def atom_y(self):
-        """ """
-        return self.__select(7)
-    
-    def atom_z(self):
-        """ """
-        return self.__select(8)
-    
-    def occupancy(self):
-        """ """
-        return self.__select(9)
-    
-    def bfactor(self):
-        """ """
-        return self.__select(10)
-    
-    def atom_type(self):
-        """ """
-        return self.__select(11)
-    
     def aa_attribute(self, which):
-        """ """
+        """Return a structure, where bfactor is replaced by chosen AA atribute:
+        0 - id,
+        1 - weight,
+        2 - frequency,
+        3 - charge,
+        4 - polar,
+        5 - aromatic,
+        6 - hp_KD
+        """
         strctr = self.structure
         for atom in strctr[0]:
             atom[10] = AA_ATTRIBUTES[AA_code(atom[3])][which]
         return strctr
+    
+    def __chains(self):
+        """Return codes of chains in current structure."""
+        vec = []
+        for ch in self.chain_ranges():
+           vec.append(ch[2])
+        return vec
+    
+    def __select(self, which):
+        """Return string list of chosen atom's attribute."""
+        vec = []
+        for atom in self.structure[0]:
+            vec.append(atom[which])
+        return vec
+    
+    def __per_resi(self, data):
+        """Return data per resi."""
+        a = self.atom_names
+        vec = []
+        for i in range(0, len(a)):
+            if a[i] == ' CA ':
+                vec.append(data[i])
+        return vec
 
 
 def read_pdb(filename, w_model = '0', w_chain = '0', w_atoms = [], alter = 'A'):
-    """ """
+    """Read PDB file. Return sstructure as PDB object. Update HEADER variable.
+    
+       PARAMS:
+       @filename - file in pdb format
+       @w_model - choose single MODEL, eg. '1'; default '0' means 'all models'
+       @w_chain - chose single CHAIN, eg. 'A'; default '0' means 'all chains'
+       @w_atoms - chose multiple ATOMS, eg. [' CA ']; default [] means 'all atoms'
+       @alter - choose alternative position, eg. 'A'; default 'A' means A variant
+    """
     def parse_line(line, model):
 
         atom = [line[:6], line[6:11], line[12:16], line[17:20],
@@ -254,8 +325,9 @@ def read_pdb(filename, w_model = '0', w_chain = '0', w_atoms = [], alter = 'A'):
     with open(filename, 'r') as pdb:
         if w_model == '0':                                 #parse all_models
             for line in pdb:
-                if line[:4] == 'ATOM':# or line[:6] == "HETATM":
-                    parse_line(line, model)
+                if line[:4] == 'ATOM' or line[:6] == "HETATM":
+                    if line[17:20] in AA_MONOMERS.keys():
+                        parse_line(line, model)
                 elif line.startswith('ENDMDL'):
                     structure.append(model)
                     model = []
@@ -267,20 +339,27 @@ def read_pdb(filename, w_model = '0', w_chain = '0', w_atoms = [], alter = 'A'):
             is_ok = 'false'
             for line in pdb:
                 if is_ok == 'true':
-                    if line[:4] == 'ATOM':# or line[:6] == "HETATM":
-                        parse_line(line, model)
+                    if line[:4] == 'ATOM' or line[:6] == "HETATM":
+                        if line[17:20] in AA_MONOMERS.keys():
+                            parse_line(line, model)
                     elif line.startswith('ENDMDL'):
                         structure.append(model)
                         break
                 elif line.startswith("MODEL%9s"%w_model):
                     is_ok = 'true'
+                elif line.startswith("ATOM"):
+                    is_ok = 'true'
+                    if line[17:20] in AA_MONOMERS.keys():
+                        parse_line(line, model)
                 else:
                     parse_header(line)
+            if not len(structure):
+                structure.append(model)
     return structure
 
 
 def pdb_to_fasta(filename):
-    """ """
+    """Convert pdb format file to string type seq. Equal to seq_from_struct()."""
     fasta = ''
     with open(filename, 'r') as pdb:
         for line in pdb:
@@ -294,7 +373,7 @@ def pdb_to_fasta(filename):
 
 
 def read_fasta(filename):
-    """ """
+    """Read fasta format file. Return string type seq."""
     fasta = ''
     with open(filename, 'r') as pdb:
         for line in pdb:
@@ -304,7 +383,10 @@ def read_fasta(filename):
 
 
 def AA_code(resid):
-    """ """
+    """Convert AA code: from 1-letter to 3-letter and vice versa.
+       Return always one of 20 standard AA.
+       Convert non-standard AA to standard one.
+    """
     aa = {v: k for k, v in AA_CODES.items()}
     code = ''
     if len(resid) == 3:
@@ -320,11 +402,31 @@ def AA_code(resid):
 
 
 def is_non_standard_AA(resid):
-    """ """
+    """Return 'True' if resid is a non-standard known AA monomer."""
     if resid in AA_MONOMERS.keys():
         return not resid in AA_CODES.values()
     else:
         print("The residue %s is unknown." %resid)
+
+
+HEADER = {
+    'HEADER'    : [],
+    'TITLE'     : [],
+    'COMPND'    : [],
+    'SOURCE'    : [],
+    'KEYWDS'    : [],
+    'EXPDTA'    : [],
+    'AUTHOR'    : [],
+    'JRNL'      : [],
+    'REMARK   2': [],
+    'REMARK 800': [],
+    'REMARK 465': [],
+    'DBREF'     : [],
+    'SEQRES'    : [],
+    'HELIX'     : [],
+    'SHEET'     : [],
+    'CISPEP'    : []
+}
 
 AA_CODES = {
     'A': 'ALA', 'C': 'CYS', 'D': 'ASP', 'E': 'GLU', 'F': 'PHE',
@@ -333,7 +435,7 @@ AA_CODES = {
     'S': 'SER', 'T': 'THR', 'V': 'VAL', 'W': 'TRP', 'Y': 'TYR'
 }
 
-##### 0 - id, 1 - weight, 2 - frequency, 3 - charge, 4 - polar, 5 - aromatic, 6 - hp_KD
+
 AA_ATTRIBUTES = {
     'I': ( 0, 131.175, 5.49,  0.0, 0.0, 0.0,  4.5 ),
     'V': ( 1, 117.148, 6.73,  0.0, 0.0, 0.0,  4.2 ),
@@ -357,26 +459,6 @@ AA_ATTRIBUTES = {
     'R': (19, 174.203, 5.78,  1.0, 1.0, 0.0, -4.5 )
 }
 
-HEADER = {
-    'HEADER'    : [],
-    'TITLE'     : [],
-    'COMPND'    : [],
-    'SOURCE'    : [],
-    'KEYWDS'    : [],
-    'EXPDTA'    : [],
-    'AUTHOR'    : [],
-    'JRNL'      : [],
-    'REMARK   2': [],
-    'REMARK 800': [],
-    'REMARK 465': [],
-    'DBREF'     : [],
-    'SEQRES'    : [],
-    'HELIX'     : [],
-    'SHEET'     : [],
-    'CISPEP'    : []
-}
-
-
 AA_MONOMERS = {
     '0CS': 'ALA',  # 0CS ALA  3-[(S)-HYDROPEROXYSULFINYL]-L-ALANINE
     '1AB': 'PRO',  # 1AB PRO  1,4-DIDEOXY-1,4-IMINO-D-ARABINITOL
@@ -390,7 +472,7 @@ AA_MONOMERS = {
     '2ML': 'LEU',  # 2ML LEU  2-METHYLLEUCINE
     '2MR': 'ARG',  # 2MR ARG  N3, N4-DIMETHYLARGININE
     '2MT': 'PRO',  # 2MT PRO
-    '2OP': 'ALA',  # 2OP (2S  2-HYDROXYPROPANAL
+    '2OP': 'ALA',  # 2OP ALA  (2S  2-HYDROXYPROPANAL
     '2TY': 'TYR',  # 2TY TYR
     '32S': 'TRP',  # 32S TRP  MODIFIED TRYPTOPHAN
     '32T': 'TRP',  # 32T TRP  MODIFIED TRYPTOPHAN

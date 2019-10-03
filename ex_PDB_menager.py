@@ -1,5 +1,5 @@
 import sys
-from PDB_menager import Pdb, read_pdb, read_fasta, AA_code
+from PDB_menager import PDB, read_pdb, read_fasta, AA_code
 
 
 #print(AA_code('ALA'))
@@ -8,8 +8,11 @@ from PDB_menager import Pdb, read_pdb, read_fasta, AA_code
 #print(AA_code('KKK'))
 
 
-s = Pdb(read_pdb('1A12.pdb', '0', '0', [' CA ']))
-print(s.non_standard_resi())
+s = PDB(read_pdb('1A12.pdb', '1', 'B', [' CA ']))
+s.write_pdb()
+
+#print(s.atom_ids)
+#print(s.non_standard_resi())
 #print(s.seq_from_struct())
 #print(s.ss_for_struct())
 #print(s.seq_from_header())
@@ -37,7 +40,7 @@ print(s.non_standard_resi())
 #
 
 
-#s.write_pdb()
+
 
 #ss = Pdb(s.aa_feature(3))
 #print(s.atom_ids())
