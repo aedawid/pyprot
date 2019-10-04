@@ -74,32 +74,29 @@ class PDB(object):
         """Return full AA seq derived from PDB header (taking missing residues)."""
         fasta = ''
         for row in self.header['SEQRES']:
-            tokens = row.split()[3:]
+            tokens = row.split()[2:]
             for t in tokens:
                 fasta += AA_code(t)
         return fasta
     
     def seq_ranges(self):
         """Returns ranges for chains in full seq."""
-        c = self.header['SEQRES'][0].split()[1]
+        c = self.header['SEQRES'][0].split()[0]
         first = 0
-        last = 0
         s_range=[]
         for row in self.header['SEQRES']:
             tokens = row.split()
-            n = len(tokens[3:])
-            if c != tokens[1]:
-                s_range.append((first, last-1, c))
-                c = tokens[1]
-                first = last
-                last = first + n
-            else:
-                last += n
+            n = int(tokens[1])
+            if c != tokens[0]:
+                s_range.append((first, first+n-1, c))
+                c = tokens[0]
+                first += n
+        s_range.append((first, first+n-1, c))
         return s_range
     
     def ss_for_struct(self):
         """Return secondary structure assignment for residues from structure."""
-        seq=self.seq_from_struct():
+        seq = self.seq_from_struct()
         ids = self.__per_resi(self.resi_ids)
         ch_r = self.chain_ranges()
         ss = 'C'*len(seq)
@@ -139,15 +136,15 @@ class PDB(object):
     def outcome_seq(self):
         """Return AA seq, where missing residues are marked as '-'."""
         s = self.seq_from_header()
-        seq_full=########################????
+        s_r = self.seq_ranges()
+        seq_full=''
         for i in self.chains:
-            for j in s:
-                if i == j[0]:
-                    seq_full += j[1]
+            for j in s_r:
+                if i == j[2]:
+                    seq_full += s[int(j[0]):int(j[1])+1]
                     break
         resi_list = self.resi_list()
         seq = ''
-        print(len(seq_full), len(resi_list))###############################
         if len(seq_full) != len(self.seq_from_struct()):
             for aa in range(0, len(seq_full)):
                 if seq_full[aa] != resi_list[aa][2]:
@@ -169,12 +166,10 @@ class PDB(object):
            @5 - experimentally known coordinates: s - known, m - missing
         """
         seq_struct = list(self.seq_from_struct())
-        print("struct_size: ", len(seq_struct))########################
         ss_struct = list(self.ss_for_struct())
         r_ids = self.__per_resi(self.resi_ids)
         c_ids = self.__per_resi(self.chain_ids)
         missing = self.missing_resi(True)
-        print("missing size2: ", len(missing))#########################
         r_list = []
         for i in missing:
             r_list.append((int(i[2]), i[1], i[0], 'X', 'm'))
@@ -199,14 +194,11 @@ class PDB(object):
         for row in self.header['REMARK 465']:
             tokens = row.split()
             if len(tokens) == 3:
-                print(tokens)#########################################
                 if per_chain == True:
                     if tokens[1] in ch:
                         missing.append((AA_code(tokens[0]), tokens[1], tokens[2]))
-                        print("appended ", len(missing))################################
                 else:
                     missing.append((AA_code(tokens[0]), tokens[1], tokens[2]))
-        print("missing size1: ", len(missing))#########################
         return missing
     
     def non_standard_resi(self):
