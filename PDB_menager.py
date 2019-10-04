@@ -180,11 +180,11 @@ class PDB(object):
     
     def chain_resi(self, c):
         """Return indexes for given chain in outcome sequence."""
-        r_list = self.resi_list()
         c_range = []
-        for i in range(0, len(r_list)):
-            if c == r_list[i][1]:
-                c_range.append(i)
+        for s_r in self.seq_ranges():
+            if c == s_r[2]:
+                c_range.append(s_r[0])
+                c_range.append(s_r[1]+1)
         return c_range
     
     def missing_resi(self, per_chain=False):
@@ -251,6 +251,58 @@ class PDB(object):
             atom[10] = AA_ATTRIBUTES[AA_code(atom[3])][which]
         return strctr
     
+    def binding_sites(self):
+        """Return binding sites."""
+        s = ''
+        if len(self.header['REMARK 800']):
+            for line in self.header['REMARK 800']:
+                tokens = line.split(':')
+                if tokens[0].startswith('SITE'):
+                    if tokens[0] == 'SITE_IDENTIFIER':
+                        s += tokens[1][1:4]+" -"
+                    elif tokens[0] == 'SITE_DESCRIPTION':
+                        s += tokens[1][:35]+","
+        return s
+    
+    def binding_resi(self):
+        """Return binding residues."""
+        vec = []
+        v = []
+        if len(self.header['SITE']):
+            site = self.header['SITE'][0].split()[0]
+            for line in self.header['SITE']:
+                if line[0:3] != site:
+                    vec.append((site, v))
+                    site = line[0:3]
+                    v = []
+                if line[7:10].isalpha() and line[7:10] != 'HOH':
+                    v.append((line[7:10], line[12:16], line[11]))
+                if line[18:21].isalpha() and line[18:21] != 'HOH':
+                    v.append((line[18:21], line[23:27], line[22]))
+                if line[29:32].isalpha() and line[29:32] != 'HOH':
+                    v.append((line[29:32], line[34:38], line[33]))
+                if line[40:43].isalpha() and line[40:43] != 'HOH':
+                    v.append((line[40:43], line[45:49], line[44]))
+            vec.append((site, v))
+        return vec
+    
+    def ss_type(self):
+        """Return type of protein due to its secondary structure: alpha, beta, albe."""
+        ss = ''
+        if self.is_alpha():
+            ss += 'alpha,'
+        if self.is_beta():
+            ss += 'beta'
+        return ss
+    
+    def is_alpha(self):
+        """Return 'True' if structure contains helix."""
+        return 'H' in list(self.ss_for_seq())
+    
+    def is_beta(self):
+        """Return 'True' if structure contains strand."""
+        return 'E' in list(self.ss_for_seq())
+    
     def __chains(self):
         """Return codes of chains in current structure."""
         vec = []
@@ -310,7 +362,10 @@ def read_pdb(filename, w_model = '0', w_chain = '0', w_atoms = [], alter = 'A'):
     def parse_header(line):
         for key in HEADER:
             if line.startswith(key):
-                HEADER[key].append(line[11:80])
+                if key == 'HET ':
+                    HEADER[key].append(line[7:80])
+                else:
+                    HEADER[key].append(line[11:80])
     
     model = []
     structure = []
@@ -415,9 +470,11 @@ HEADER = {
     'REMARK 465': [],
     'DBREF'     : [],
     'SEQRES'    : [],
+    'HET '      : [],
     'HELIX'     : [],
     'SHEET'     : [],
-    'CISPEP'    : []
+    'CISPEP'    : [],
+    'SITE'      : []
 }
 
 AA_CODES = {
