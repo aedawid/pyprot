@@ -82,15 +82,16 @@ class PDB(object):
     def seq_ranges(self):
         """Returns ranges for chains in full seq."""
         c = self.header['SEQRES'][0].split()[0]
+        n = int(self.header['SEQRES'][0].split()[1])
         first = 0
         s_range=[]
         for row in self.header['SEQRES']:
             tokens = row.split()
-            n = int(tokens[1])
             if c != tokens[0]:
                 s_range.append((first, first+n-1, c))
                 c = tokens[0]
                 first += n
+            n = int(tokens[1])
         s_range.append((first, first+n-1, c))
         return s_range
     
@@ -101,27 +102,24 @@ class PDB(object):
         ch_r = self.chain_ranges()
         ss = 'C'*len(seq)
         s = list(ss)
-
-        def parse_row(row, n, c):
-            tokens = row.split()
-            if tokens[2+n] == tokens[5+n]:
+        def parse_row(row, n1, n2, n3, n4, c):
+            if row[n1] == row[n2]:
                 for ch in ch_r:
-                    if tokens[2+n] == ch[2]:
-                        start = int(ch[0])
-                        ss_first = start + int(tokens[3+n]) - int(ids[start])
-                        ss_last = ss_first + int(tokens[6+n]) - int(tokens[3+n])
-                        if seq[ss_first] == AA_code(tokens[1+n]):
-                            for i in range(ss_first, ss_last + 1):
-                                s[i] = c
+                    if  row[n1] == ch[2]:
+                        for i in range(int(ch[0]), int(ch[1])+1):
+                            if int(ids[i]) == int(row[n3:n3+4]) and seq[i - int(ch[0])] ==  AA_code(row[n4:n4+3]):
+                                for ii in range(i - int(ch[0]), i - int(ch[0]) + int(row[23:27]) - int(row[n3:n3+4]) + 1):
+                                    s[ii] = c
+                                break
 
         if len(seq) != len(ids):
             print("ERROR: len(seq) != len(ids)")
             print(len(seq), len(ids))
         else:
             for row in self.header['HELIX']:
-                parse_row(row, 0, 'H')
+                parse_row(row, 9, 21, 11, 5, 'H')
             for row in self.header['SHEET']:
-                parse_row(row, 1, 'E')
+                parse_row(row, 11, 22, 12, 7, 'E')
 
         ss = "".join(s)
         return ss
@@ -145,6 +143,9 @@ class PDB(object):
                     break
         resi_list = self.resi_list()
         seq = ''
+#        print(self.seq_from_struct())##############################
+#        print(s)###########################
+#        print(len(self.seq_from_struct()), len(s), len(resi_list))#########################
         if len(seq_full) != len(self.seq_from_struct()):
             for aa in range(0, len(seq_full)):
                 if seq_full[aa] != resi_list[aa][2]:
@@ -199,6 +200,23 @@ class PDB(object):
                         missing.append((AA_code(tokens[0]), tokens[1], tokens[2]))
                 else:
                     missing.append((AA_code(tokens[0]), tokens[1], tokens[2]))
+        name = self.structure[0][0][3]
+        chain = self.structure[0][0][4]
+        a_id = self.structure[0][0][5]
+        n = 0
+        for atom in self.structure[0]:
+            if atom[4] in ch:
+                if atom[5] == a_id:
+                    if atom[2] == ' CA ':
+                        n = 1
+                else:
+                    if n != 1:
+                        missing.append((AA_code(name), chain, a_id))
+                    name = atom[3]
+                    chain = atom[4]
+                    a_id = atom[5]
+                    n = 0
+#        print(len(missing))###########################
         return missing
     
     def non_standard_resi(self):
@@ -348,16 +366,14 @@ def read_pdb(filename, w_model = '0', w_chain = '0', w_atoms = [], alter = 'A'):
             else:
                 for at in w_atoms:                 ###parse atoms
                     if line[12:16] == at:
-                        if line[16] == ' ' or line[16] == alter:
-                            model.append(atom)
+                        model.append(atom)
         elif line[21] == w_chain:                  ##parse single chain
             if not len(w_atoms):
                 model.append(atom)
             else:
                 for at in w_atoms:
                     if line[12:16] == at:
-                        if line[16] == ' ' or line[16] == alter:
-                            model.append(atom)
+                        model.append(atom)
     
     def parse_header(line):
         for key in HEADER:
@@ -365,7 +381,7 @@ def read_pdb(filename, w_model = '0', w_chain = '0', w_atoms = [], alter = 'A'):
                 if key == 'HET ':
                     HEADER[key].append(line[7:80])
                 else:
-                    HEADER[key].append(line[11:80])
+                    HEADER[key].append(line[10:80])
     
     model = []
     structure = []
@@ -373,8 +389,9 @@ def read_pdb(filename, w_model = '0', w_chain = '0', w_atoms = [], alter = 'A'):
         if w_model == '0':                                 #parse all_models
             for line in pdb:
                 if line[:4] == 'ATOM' or line[:6] == "HETATM":
-                    if line[17:20] in AA_MONOMERS.keys():
-                        parse_line(line, model)
+                    if line[16] == ' ' or line[16] == alter:
+                        if line[17:20] in AA_MONOMERS.keys():
+                            parse_line(line, model)
                 elif line.startswith('ENDMDL'):
                     structure.append(model)
                     model = []
@@ -385,16 +402,18 @@ def read_pdb(filename, w_model = '0', w_chain = '0', w_atoms = [], alter = 'A'):
         else:                                              #parse single model
             is_ok = 'false'
             for line in pdb:
+                
                 if is_ok == 'true':
                     if line[:4] == 'ATOM' or line[:6] == "HETATM":
-                        if line[17:20] in AA_MONOMERS.keys():
-                            parse_line(line, model)
+                        if line[16] == ' ' or line[16] == alter:
+                            if line[17:20] in AA_MONOMERS.keys():
+                                parse_line(line, model)
                     elif line.startswith('ENDMDL'):
                         structure.append(model)
                         break
                 elif line.startswith("MODEL%9s"%w_model):
                     is_ok = 'true'
-                elif line.startswith("ATOM"):
+                elif line.startswith("ATOM") or line.startswith("HETATM"):
                     is_ok = 'true'
                     if line[17:20] in AA_MONOMERS.keys():
                         parse_line(line, model)
@@ -443,8 +462,13 @@ def AA_code(resid):
             code = aa[AA_MONOMERS[resid]]
         else:
             print("The residue %s is unknown." %resid)
+    elif len(resid) == 1:
+        if resid in AA_CODES.keys():
+            code = AA_CODES[resid]
+        else:
+            code = resid
     else:
-        code = AA_CODES[resid]
+        code = resid
     return code
 
 

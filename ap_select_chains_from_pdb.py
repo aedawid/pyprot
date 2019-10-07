@@ -27,7 +27,10 @@ def ap_select_chains_from_pdb(filename, output=None, model='0', chain='0'):
     outfile.write("\n\nHETAT:")
     for ii in s.header["HET "]:
         i = ii.split()
-        st = i[0]+" "+i[1]+" "+i[2]+" "+i[3]+","
+        if len(i) == 4:
+            st = i[0]+" "+i[1]+" "+i[2]+" "+i[3]+","
+        elif len(i) == 3:
+            st = i[0]+" "+i[1][0]+" "+i[1][1:]+" "+i[2]+","
         outfile.write(st)
     
     outfile.write("\n\nCIS_P:")
