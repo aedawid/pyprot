@@ -135,6 +135,7 @@ class PDB(object):
         """Return AA seq, where missing residues are marked as '-'."""
         s = self.seq_from_header()
         s_r = self.seq_ranges()
+        print(s_r)
         seq_full=''
         for i in self.chains:
             for j in s_r:
@@ -143,9 +144,9 @@ class PDB(object):
                     break
         resi_list = self.resi_list()
         seq = ''
-#        print(self.seq_from_struct())##############################
-#        print(s)###########################
-#        print(len(self.seq_from_struct()), len(s), len(resi_list))#########################
+        print("struct: ", self.seq_from_struct())##############################
+        print("seq   :", seq_full)###########################
+        print(len(self.seq_from_struct()), len(seq_full), len(resi_list))#########################
         if len(seq_full) != len(self.seq_from_struct()):
             for aa in range(0, len(seq_full)):
                 if seq_full[aa] != resi_list[aa][2]:
@@ -216,7 +217,7 @@ class PDB(object):
                     chain = atom[4]
                     a_id = atom[5]
                     n = 0
-#        print(len(missing))###########################
+        print("missing: ", len(missing))###########################
         return missing
     
     def non_standard_resi(self):
@@ -461,14 +462,15 @@ def AA_code(resid):
         elif resid in AA_MONOMERS.keys():
             code = aa[AA_MONOMERS[resid]]
         else:
-            print("The residue %s is unknown." %resid)
+            code = ''
+#            print("The residue %s is unknown." %resid)
     elif len(resid) == 1:
         if resid in AA_CODES.keys():
             code = AA_CODES[resid]
         else:
             code = resid
     else:
-        code = resid
+        code = 'X'
     return code
 
 

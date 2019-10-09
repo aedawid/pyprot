@@ -8,12 +8,12 @@ from PDB_menager import PDB, read_pdb, read_fasta, AA_code
 #print(AA_code('KKK'))
 
 
-s = PDB(read_pdb('1A12.pdb', '1', 'B', []))
-print(len(s.seq_from_header()))
-print(s.seq_ranges())
-print(s.missing_resi())
-print(s.outcome_seq())
-print(s.ss_for_seq())
+s = PDB(read_pdb('2JY6.pdb', '1', 'B', []))
+print(s.seq_from_header())
+#print(s.seq_ranges())
+#print(s.missing_resi())
+#print(s.outcome_seq())
+#print(s.ss_for_seq())
 #s.write_pdb()
 
 #print(s.atom_ids)
