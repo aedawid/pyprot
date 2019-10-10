@@ -1,23 +1,19 @@
-#import manage_pdb
-from manage_pdb import read_pdb, read_pdb_model, write_pdb, write_pdb_model
-from manage_pdb import pdb_to_fasta, AA_code, read_fasta
-from classes import AA, Chain
+import sys
+from PDB_menager import PDB, read_pdb
+from Structure import Structure, Atom
 
-#structure = []
-#read_pdb('1D3Z_UB_NMR.pdb', structure)
-#atoms = [' N  ', ' CA ']
-#read_pdb_model('ubiquitin.pdb', '3', 'A', atoms, structure)
-#write_pdb(structure)
-#write_pdb_model(structure, 11)
+pdb = PDB(read_pdb('2JY6.pdb', '1', 'A', []))
+structure = Structure(pdb.structure)
+#print(len(structure.structure))
 
-#print(pdb_to_fasta('ubiquitin.pdb'))
-#print(AA_code('A'))
-#print(AA_code('ALA'))
-#print(read_fasta('ubiquitin.fasta'))
-seq = read_fasta('ubiquitin.fasta')
-#i = AA('H')
-#print(i.name, i.id, i.weight)
-ch = Chain(seq)
-#print(ch.name, ch.id, ch.weight)
-b = ch.beads[4]
-print(b.name, b.id, b.weight)
+#print("CHAINS: ", structure.chains)
+#print("RESIDUES: ", structure.residues)
+#print("SEQ:", structure.sequence)
+#print("SEQ_LEN:", structure.seq_len)
+
+united = structure.create_united_representation(2, 2)
+
+#print("U_CODES: ", structure.united_codes)
+
+for atom in united:
+    print(atom.__str__())

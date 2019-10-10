@@ -1,5 +1,6 @@
 import re
 import numpy as np
+import hashlib
 
 from math import sqrt
 from copy import deepcopy
@@ -8,6 +9,7 @@ from string import ascii_uppercase
 from collections import OrderedDict
 
 from PDB_menager import AA_code
+from vector3d import Vector3d
 
 class Structure(object):
 
@@ -17,71 +19,114 @@ class Structure(object):
         self.structure = []
         if PDB:
             if isinstance(PDB, list):
-                self.structure.append(Atom(atom, num)) for num, atom in enumerate(PDB[m_id])
+                for num, atom in enumerate(PDB[m_id]):
+                    self.structure.append(Atom(atom, num))
             elif isinstance(PDB, str):
                 ch = PDB.split('/')
                 for c in ch:
                     names = PDB.split(':')
                     if len(names) > 1:
-                        self.structure.append(Atom(atom, num, names[0])) for num, atom in enumerate(names[1])
+                        for num, atom in enumerate(names[1]):
+                            self.structure.append(Atom(atom, num, names[0]))
                     else:
-                        self.structure.append(Atom(atom, num)) for num, atom in enumerate(names)
+                        for num, atom in enumerate(names):
+                            self.structure.append(Atom(atom, num))
 
-        self.chains = self._get_chains()
+        self.chains   = self._get_chains()
         self.residues = self._get_resids()
+        self.sequence = self._get_seq()
+        self.seq_len  = len(self.sequence)
+        self.united_codes = AA_UNITED
+        self.united_attributes = self.calculate_united_attributes()
+
 
     def _get_chains(self):
-        
+        """Returns dictionary of chains in Structure object and its atom ranges."""
+        chains = {}
+        for num, atom in enumerate(self.structure):
+            if atom.chain_id in chains.keys():
+                chains[atom.chain_id][1] = num
+            else:
+                chains.update({atom.chain_id : [num, 0]})
+        return chains
 
     def _get_resids(self):
-        
+        """Returns dictionary of residues in Structure object and its atom ranges."""
+        resids = OrderedDict()
+        key =''
+        for num, atom in enumerate(self.structure):
+            prefix = str(atom.resi_id)+":"+atom.chain_id
+            if prefix in resids.keys():
+                resids[prefix][1] = num
+            else:
+                resids[prefix] = [num, 0]
+        return resids
 
-class Chain(object):
+    def _get_seq(self):
+        """Returns amino acid sequence."""
+        seq = ''
+        for resid in self.residues:
+            seq += self.structure[self.residues[resid][0]].aa_code
+        return seq
 
-    def __init__(self, chain):
-        self.beads         = [AA(aa) for aa in seq]
-        self.name          = [resid.name       for resid in self.beads]
-        self.id            = [resid.id         for resid in self.beads]
-        self.weight        = [resid.weight     for resid in self.beads]
-        self.frequency     = [resid.frequency  for resid in self.beads]
-        self.charge        = [resid.charge     for resid in self.beads]
-        self.polarity      = [resid.polarity   for resid in self.beads]
-        self.aromatic      = [resid.aromatic   for resid in self.beads]
-        self.hp_KD         = [resid.hp_KD      for resid in self.beads]
+    def select_atoms(self, atoms):
+        """Returns selected group of atoms by its chain, names or range."""
+        subset=[]
+        if isinstance(atoms, str):
+            for ch in self.chains:
+                if ch == atoms:
+                    subset = structure[self.chains[ch][0]:self.chains[ch][1]]
+        if isinstance(atoms, tuple):
+            subset = structure[atom[0]:atom[1]]
+        else:
+            for atom in self.structure:
+                if atom.atom_name in atoms:
+                    subset.append(atom)
+        return subset
 
-        self.seq_length    = len(seq)
-        self.nbonds        = len(seq)-1
-        self.bond_length   = bond_length
+    def create_united_representation(self, frame=2, shift=1):
+        """Creates united representation (structure object) of chosen frame and shift per residue."""
+        n = num = 0
+        subset = self.select_atoms(['CA'])
+        representation=[]
+        for atom in subset:
+            is_ok = False
+            if num + frame > len(subset):
+                break
+            if num % shift == 0:
+                united_at = Atom()
+                name  = atom.aa_code
+                united_at.coordin = atom.coordin
+                for i in range(1, frame):
+                    if atom.is_chain(subset[num+i]):
+                        is_ok = True
 
+                        name += subset[num+i].aa_code
+                        united_at.add_coordin(subset[num+i])
+                    else:
+                        is_ok = False
+                if is_ok:
+                    united_at.idx = united_at.atom_id = united_at.resi_id = n
+                    n += 1
+                    united_at.chain_id = atom.chain_id
+                    united_at.coordin /= frame
+                    if not name in AA_UNITED:
+                        ss = hashlib.sha224(name).hexdigest()[-3:]
+                        if not ss in AA_UNITED.values():
+                            AA_UNITED[name] = ss
+                            united_at.resi_name = ss
+                        else:
+                            print("ERROR: hash value repeated!")
+                representation.append(united_at)
+            num += 1
+        return representation
 
-class UnitedAtom(object):
-
-    def __init__(self, atoms, frame=0, shift=1):
-        """Creates UnitedAtom from given list of atoms."""
-        for idx, atom in enumerate(atoms):
-            if idx % shift == 0:
-                
-        
-        
-        
-        
-        self.atom_id = self.resi_id = num
-        self.atom_name = "CA"
-        self.resi_name = AA_code(residue)
-        self.chain_id = chain
-        self.coordin = Vector3d(0.0, 0.0, 0.0)
-        self.occupancy = 0.0
-        self.bfactor = 0.0
-        self.atom_type = 'C'
-        
-        
-        self.weight = aa_features[aa][1]
-        self.frequency = aa_features[aa][2]
-        self.charge = aa_features[aa][3]
-        self.polarity = aa_features[aa][4]
-        self.aromatic = aa_features[aa][5]
-        self.hp_KD = aa_features[aa][6]
-
+    def calculate_united_attributes(self):
+        """"""
+        if not len(AA_UNITED):
+            print("AA_UNITED is empty.")
+        else:
+            print("")
 
 
 class Atom(object):
@@ -123,7 +168,7 @@ class Atom(object):
                 """Creates Atom from amino acid sequence"""
                 self.resi_name = AA_code(residue)
 
-#        self.aa_code = AA_code(self.resi_name)
+        self.aa_code = AA_code(self.resi_name)
 #        self.weight = AA_ATTRIBUTES[self.aa_code][1]
 #        self.frequency = AA_ATTRIBUTES[self.aa_code][2]
 #        self.charge = AA_ATTRIBUTES[self.aa_code][3]
@@ -134,10 +179,10 @@ class Atom(object):
     def __str__(self):
         line = "ATOM  "
         name = " %-3s" % self.atom_name
-        if len(self.name) == 4:
+        if len(self.atom_name) == 4:
             name = self.atom_name
         line += "%5d %4s %-4s%1s%4d    %24s%6.2f%6.2f %s" % (
-                self.serial, name, self.resi_name, self.chain_id, self.resi_id,
+                self.atom_id, name, self.resi_name, self.chain_id, self.resi_id,
                 self.coordin, self.occupancy, self.bfactor, self.atom_type
         )
         return line
@@ -165,3 +210,5 @@ class Atom(object):
             self.coordin += atom
         else:
             self.coordin += atom.coordin
+
+AA_UNITED = {}
