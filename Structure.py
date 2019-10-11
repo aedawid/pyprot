@@ -8,7 +8,7 @@ from itertools import combinations
 from string import ascii_uppercase
 from collections import OrderedDict
 
-from PDB_menager import AA_code
+from PDB_menager import AA_code, AA_ATTRIBUTES
 from vector3d import Vector3d
 
 class Structure(object):
@@ -19,8 +19,11 @@ class Structure(object):
         self.structure = []
         if PDB:
             if isinstance(PDB, list):
-                for num, atom in enumerate(PDB[m_id]):
-                    self.structure.append(Atom(atom, num))
+                if isinstance(PDB[0], Atom):
+                    self.structure = PDB
+                else:
+                    for num, atom in enumerate(PDB[m_id]):
+                        self.structure.append(Atom(atom, num))
             elif isinstance(PDB, str):
                 ch = PDB.split('/')
                 for c in ch:
@@ -57,7 +60,7 @@ class Structure(object):
         for num, atom in enumerate(self.structure):
             prefix = str(atom.resi_id)+":"+atom.chain_id
             if prefix in resids.keys():
-                resids[prefix][1] = num
+                resids[prefix][1] = num+1
             else:
                 resids[prefix] = [num, 0]
         return resids
@@ -108,26 +111,74 @@ class Structure(object):
                 if is_ok:
                     united_at.idx = united_at.atom_id = united_at.resi_id = n
                     n += 1
+                    united_at.aa_code = name
                     united_at.chain_id = atom.chain_id
-                    united_at.coordin /= frame
+                    united_at.coordin.x /= float(frame)
+                    united_at.coordin.y /= float(frame)
+                    united_at.coordin.z /= float(frame)
                     if not name in AA_UNITED:
-                        ss = hashlib.sha224(name).hexdigest()[-3:]
+                        ss = hashlib.sha224(name.encode('utf-8')).hexdigest()[-3:]
                         if not ss in AA_UNITED.values():
                             AA_UNITED[name] = ss
                             united_at.resi_name = ss
                         else:
-                            print("ERROR: hash value repeated!")
+                            ss = hashlib.sha224(name.encode('utf-8')).hexdigest()
+                            is_done = False
+                            for i in range(0, len(ss)-3):
+                                sss = ss[:3]
+                                if not sss in AA_UNITED.values():
+                                    AA_UNITED[name] = sss
+                                    united_at.resi_name = sss
+                                    is_done = True
+                                    break
+                            if is_done == False:
+                                print("ERROR: hash value repeated!")
                 representation.append(united_at)
             num += 1
-        return representation
+        return Structure(representation)
 
     def calculate_united_attributes(self):
         """"""
         if not len(AA_UNITED):
-            print("AA_UNITED is empty.")
+            print("")#("AA_UNITED is empty.")
         else:
-            print("")
+            for num, key in enumerate(AA_UNITED):
+                weight = freq = charge = polar = aromatic = hp_KD = 0.0
+                for aa in key:
+                    weight += float(AA_ATTRIBUTES[aa][1])
+                    freq += float(AA_ATTRIBUTES[aa][2])
+                    charge += float(AA_ATTRIBUTES[aa][3])
+                    polar += float(AA_ATTRIBUTES[aa][4])
+                    aromatic += float(AA_ATTRIBUTES[aa][5])
+                    hp_KD += float(AA_ATTRIBUTES[aa][6])
+                UN_ATTRIBUTES[key] = (num, weight, freq, charge, polar, aromatic, hp_KD)
+        return UN_ATTRIBUTES
 
+
+    def place_attribute_in_bfcol(self, which=6):
+        for atom in self.structure:
+            atom.bfactor = UN_ATTRIBUTES[atom.aa_code][which]
+
+    def place_seq_feature_in_bfcol(self, feature):
+        vec = []
+        if len(self.residues) != len(feature):
+#            print("ERROR: Number of residues (", len(self.residues), ") and feature size (", len(feature), ") are not equal!")
+            n = 0
+            for num, res in enumerate(self.sequence):
+                if res == feature[n][0]:
+                    vec.append(feature[n][1])
+                    n += 1
+                elif n+3 < len(feature) and num+3 < len(self.sequence) and self.sequence[num+1] == feature[n+1][0] and self.sequence[num+2] == feature[n+2][0] and self.sequence[num+3] == feature[n+3][0]:
+                    vec.append(0.000)
+                    n += 1
+                else:
+                    vec.append(0.000)
+        else:
+            for ix in feature:
+                vec.append(ix[1])
+        for num, res in enumerate(self.residues):
+            for atom in self.structure[self.residues[res][0]:self.residues[res][1]]:
+                atom.bfactor = float(vec[num])
 
 class Atom(object):
 
@@ -169,12 +220,8 @@ class Atom(object):
                 self.resi_name = AA_code(residue)
 
         self.aa_code = AA_code(self.resi_name)
-#        self.weight = AA_ATTRIBUTES[self.aa_code][1]
-#        self.frequency = AA_ATTRIBUTES[self.aa_code][2]
-#        self.charge = AA_ATTRIBUTES[self.aa_code][3]
-#        self.polarity = AA_ATTRIBUTES[self.aa_code][4]
-#        self.aromatic = AA_ATTRIBUTES[self.aa_code][5]
-#        self.hp_KD = AA_ATTRIBUTES[self.aa_code][6]
+
+
 
     def __str__(self):
         line = "ATOM  "
@@ -212,3 +259,4 @@ class Atom(object):
             self.coordin += atom.coordin
 
 AA_UNITED = {}
+UN_ATTRIBUTES = {}

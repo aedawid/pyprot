@@ -67,6 +67,9 @@ class Vector3d:
     def __rmul__(self, factor):
         return self * factor
 
+    def div(self, factor):
+        return self * (1.0 / factor)
+
     def __div__(self, factor):
         return self * (1.0 / factor)
 
@@ -173,14 +176,14 @@ class Vector3d:
         return self
 
 
-if __name__ == '__main__':
-    print Vector3d()
-    print Vector3d('1 2 3')
-    print Vector3d('4, 5, 6')
-    print Vector3d(7, 8, 9)
-    print Vector3d(z='3.14', x=2.71)
-    print Vector3d(np.arange(1, 4))
-    print Vector3d(np.array([1, 2, 3]))
-    a = (1, 2, 7)
-    print Vector3d(a)
-    print Vector3d().random()
+#if __name__ == '__main__':
+#    print Vector3d()
+#    print Vector3d('1 2 3')
+#    print Vector3d('4, 5, 6')
+#    print Vector3d(7, 8, 9)
+#    print Vector3d(z='3.14', x=2.71)
+#    print Vector3d(np.arange(1, 4))
+#    print Vector3d(np.array([1, 2, 3]))
+#    a = (1, 2, 7)
+#    print Vector3d(a)
+#    print Vector3d().random()
