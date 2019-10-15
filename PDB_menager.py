@@ -9,34 +9,10 @@ class PDB(object):
 
     def __init__(self, structure):
 
-        ### LOADED STRUCTURE
         self.structure = structure
         """Returns structure object."""
-        self.seq = self._seq_from_struct()
-        """Returns list of fasta strings for chains in current structure: eg. ('MSSGS', 'AGLSH')."""
-        self.chains = self._chains_ranges()
-        """Returns dictionary of chains in current structure: eg. ('A':(0, 50), 'B':(51:100))."""
-        self.ss = self._ss_for_struct()
-        """Returns list of strings of secondary structure in current structure: eg. ('CEEEC', 'CCHHH')."""
-        self.residues = self.resi_list()
-        """Returns list of consensus description of sequences in current structure."""
-        self.out_seq = self.outcome_seq()
-        """Returns list of consensus fasta strings for chains in structure and header: eg. ('-SSGS', 'A--SH')."""
-        self.missing = self.missing_resi(True)
-        """Returns list of missing residues in current structure: eg. ()"""
-        
-        ### PARSE HEADER
         self.header = HEADER
         """Returns global variable that keeps selected info from PDB header."""
-        self.pdb_seq = self._seq_from_header()
-        """Returns list of fasta strings for all chains in PDB header: eg. ('MSSGS', 'AGLSH')."""
-        self.pdb_chains = self._pdb_chains_ranges()
-        """Returns dictionary of chains in PDB header: eg. ('A':(0, 50), 'B':(51:100))."""
-        self.pdb_ss = self._ss_for_seq()
-        """Returns list of strings of secondary structure for seq from header: eg. ('CEEEC', 'CCHHH')."""
-        self.pdb_missing = self.missing_resi()
-        """Returns list of missing residues in PDB header: eg. ()"""
-        
         ### ATOM SECTION
         self.record_type = self.__select(0)
         """Returns string list of record type ('ATOM' or 'HETATM') for all atoms. """
@@ -62,6 +38,27 @@ class PDB(object):
         """Returns string list of bfactor for all atoms."""
         self.atom_type = self.__select(11)
         """Returns string list of atom types for all atoms."""
+
+        self.pdb_seq = self._seq_from_header()
+        """Returns list of fasta strings for all chains in PDB header: eg. ('MSSGS', 'AGLSH')."""
+        self.seq = self._seq_from_struct()
+        """Returns list of fasta strings for chains in current structure: eg. ('MSSGS', 'AGLSH')."""
+        self.pdb_chains = self._pdb_chains_ranges()
+        """Returns dictionary of chains in PDB header: eg. ('A':(0, 50), 'B':(51:100))."""
+        self.chains = self._chain_ranges()
+        """Returns dictionary of chains in current structure: eg. ('A':(0, 50), 'B':(51:100))."""
+        self.pdb_missing = self.missing_resi()
+        """Returns list of missing residues in PDB header: eg. ()"""
+        self.ss = self._ss_for_struct()
+        """Returns list of strings of secondary structure in current structure: eg. ('CEEEC', 'CCHHH')."""
+        self.residues = self.resi_list()
+        """Returns list of consensus description of sequences in current structure."""
+        self.missing = self.missing_resi(True)
+        """Returns list of missing residues in current structure: eg. ()"""
+        self.out_seq = self.outcome_seq()
+        """Returns list of consensus fasta strings for chains in structure and header: eg. ('-SSGS', 'A--SH')."""
+        self.pdb_ss = self._ss_for_seq()
+        """Returns list of strings of secondary structure for seq from header: eg. ('CEEEC', 'CCHHH')."""
     
     ### LOADED STRUCTURE
     def write_pdb(self, which = 1):
@@ -88,7 +85,7 @@ class PDB(object):
     def _seq_from_struct(self):
         """Return AA sequences for chains from structure."""
         seq = []
-        ch = self.chains[0]
+        ch = self.structure[0][0][4]
         fasta = ''
         for atom in self.structure[0]:
             if atom[2] == ' CA ':
@@ -107,7 +104,7 @@ class PDB(object):
             ch_ids = self.__per_resi(self.chain_ids)
         else:
             ch_ids = self.chain_ids
-        ranges = []
+        ranges = {}
         if ch_ids[0] == ch_ids[len(ch_ids)-1]:
             ranges[ch_ids[0]] = (0, len(ch_ids)-1, 0)
         else:
@@ -126,28 +123,29 @@ class PDB(object):
     
     def _ss_for_struct(self):
         """Return secondary structure assignment for residues from structure: eg. ('CHHHCC', 'CCEEEEECC')."""
+        ss = []					#('cccccc', 'ccccccccc')
         def parse_row(row, n1, n2, n3, n4, c):
             if row[n1] == row[n2]:
                 for num, ch in enumerate(ch_r):
                     if row[n1] == ch:
-                        for i in range(int(ch[0]), int(ch[1])+1):
+                        for i in range(ch_r[ch][0], ch_r[ch][1]+1):
                             if int(ids[i]) == int(row[n3:n3+4]) and seq[num][i] == AA_code(row[n4:n4+3]):
-                                for k in range(i+1, int(ch[1])+1):
+                                for k in range(i+1, int(ch_r[ch][1])+1):
                                     if int(ids[k]) == int(row[23:27]):
+                                        s = list(ss[num])
                                         for ii in range(i, k):
-                                            ss[num][ii] = c
+                                            s[ii] = c
+                                        ss[num] = "".join(s)
                                         break
         seq = self.seq				#('ahagly', 'nanannana')
         ids = self.__per_resi(self.resi_ids)	#(33, 34, 35, 36, 37), N_resi, ids
         ch_r = self.chains			#('A':(0, 15), 'B':(16, 50)), idxs
-        ss = []					#('cccccc', 'ccccccccc')
         for chain in seq:
             ss.append('C'*len(chain))
         for row in self.header['HELIX']:
             parse_row(row, 9, 21, 11, 5, 'H')
         for row in self.header['SHEET']:
             parse_row(row, 11, 22, 12, 7, 'E')
-#        ss = "".join(s)
         return ss
     
     ### PARSE HEADER
@@ -171,7 +169,8 @@ class PDB(object):
     def _pdb_chains_ranges(self):
         """Returns ranges of residue_idxs for chains in full seq: eg. [(0, 100, 'A'), (101, 220, 'B')]."""
         seq = self.pdb_seq
-        c = s_range = []
+        c = []
+        s_range = {}
         first = 0
         for row in self.header['SEQRES']:
             if not row.split()[0] in c:
@@ -184,30 +183,31 @@ class PDB(object):
     
     def _ss_for_seq(self):
         """Return secondary structure assignment for full seq, 'X' for unknown."""
-        ss = ''
-        for i in self.resi_list():
-            ss += i[3]
+        s = ''
+        ss = []
+        for chain in self.residues:
+            for res in chain:
+                s += res[3]
+            ss.append(s)
         return ss
     
     def outcome_seq(self):
         """Return list of chain sequences, where missing residues are marked as '-'."""
         seq = []
-        resi_list = self.residues
-
-        for ch in self.chains:				#('A', 'B')
-            s = self.pdb_seq[self.pdb_chains[ch][2]]
-#            print("struct: ", self.seq[ch[2]])##############################
-#            print("seq   : ", s)###########################
-#            print(len(self.seq[ch[2]]), len(s), len(resi_list))#########################
-            if len(s) != len(self.seq[ch[2]]):
+        for num, ch in enumerate(self.chains.keys()):				#('A', 'B')
+            resi_list = self.residues[num]
+            s = list(self.pdb_seq[self.pdb_chains[ch][2]])
+#            print("struct: ", self.seq[self.chains[ch][2]])##############################
+#            print("seq   : ", "".join(s))###########################
+#            print(len(self.seq[self.chains[ch][2]]), len(s), len(resi_list))#########################
+            if len(s) != len(self.seq[self.chains[ch][2]]):
                 for aa in range(0, len(s)):
-#                    print(seq_full[aa], resi_list[aa][2])################################
                     if s[aa] != resi_list[aa][2]:
                         print("ERROR: seq_from_struct + missing_resi differ from seq_from_header at position %s" %aa)
                     if resi_list[aa][4] == 'm':
                         s[aa] = '-'
-            seq.append(s)
-#        print("out_s : ", seq)#######################################
+            seq.append("".join(s))
+#        print("out_s : ", seq[0])#######################################
         return seq
     
     def resi_list(self):
@@ -218,60 +218,61 @@ class PDB(object):
            @4 - secondary structure assignment: H, E, C, X - unknown
            @5 - experimentally known coordinates: s - known, m - missing
         """
+        r_l = []
         r_list = []
         r_ids = self.__per_resi(self.resi_ids)
-        missing = self.missing_resi(True)
-#        print("missing: ", len(missing), missing)########################
-        r_idx = int(r_ids[0])
-        for i in missing:
-            r_list.append((int(i[2]), i[1], i[0], 'X', 'm'))
-        for ch in self.chains:
-            r_idsx = int(r_ids[ch[0]])
-            for num, res in enumerate(range(ch[0], ch[1])):
+        for ch in self.chains.keys():
+            for i in self.pdb_missing:
+                if i[1] == ch:
+                    r_l.append((int(i[2]), i[1], i[0], 'X', 'm'))
+            r_idx = int(r_ids[self.chains[ch][0]])
+            for num, res in enumerate(range(self.chains[ch][0], self.chains[ch][1]+1)):
                 if r_idx > int(r_ids[res]):
                     r_idx += 1
                 else:
                     r_idx = int(r_ids[res])
-                r_list.append((r_idx, ch, self.seq[ch[2]][num], self.ss[ch[2]][num], 's'))
-        r_list = sorted(r_list, key = lambda tup: (tup[1], tup[0]))
+                r_l.append((r_idx, ch, self.seq[self.chains[ch][2]][num], self.ss[self.chains[ch][2]][num], 's'))
+            r_l = sorted(r_l, key = lambda tup: (tup[1], tup[0]))
+            
+            seq_h = list(self.pdb_seq[self.pdb_chains[ch][2]])
+            if len(r_l) != len(seq_h):
+                n = 0
+                for num, aa in enumerate(seq_h):
+                    if num >= len(r_l):
+                        r_l.insert(num, (r_l[num-1][0]+1, ch, aa, 'X', 'm'))
+                    elif aa != r_l[num][2]:
+                        r_l.insert(num, ('nan', ch, aa, 'X', 'm'))
+                        n += 1
+                        if seq_h[num+1] == r_l[num+1][2]:
+                            for i in range(0, n):
+                                tmp = list(r_l[num-i])
+                                tmp[0] = r_l[num+1][0]-i-1
+                                r_l[num-i] = tuple(tmp)
+                            n = 0
+                    elif num+1 < len(r_l)-1 and seq_h[num+1] != r_l[num+1][2]:
+                        if seq_h[num+1] == r_l[num][2] and seq_h[num+2] == r_l[num+1][2]:
+                            r_l.insert(num, (r_l[num][0]-1, ch, aa, 'X', 'm'))
+            r_list.append(r_l)
         return r_list
     
     def missing_resi(self, per_struct=False):
         """Return list of missing residues: resi name, chain, resi id."""
-        m = missing = []
-        for row in self.header['REMARK 465']:		#missing residues
-            tokens = row.split()
-            if len(tokens) == 3:
-                m.append((AA_code(tokens[0]), tokens[1], tokens[2]))
-        for row in self.header['REMARK 470']:		#missing CA atoms
-            tokens = row.split()
-            if len(tokens) >= 4 and len(tokens[1]) == 1:
-                if tokens[3] == 'CA' or tokens[4] == 'CA':
-                    m.append((AA_code(tokens[0]), tokens[1], ''.join(c for c in tokens[2] if not c.isalpha())))
-
-        if per_struct == True:
-            for res in m:
-                if res[1] in self.chains:
-                    missing.append(res)
-#        name = self.structure[0][0][3]
-#        chain = self.structure[0][0][4]
-#        a_id = self.structure[0][0][5]
-#        n = 0
-#        for atom in self.structure[0]:
-#            if atom[4] in ch:
-#                if atom[5] == a_id:
-#                    if atom[2] == ' CA ':
-#                        n = 1
-#                else:
-#                    if n != 1:
-#                        missing.append((AA_code(name), chain, a_id))
-#                    name = atom[3]
-#                    chain = atom[4]
-#                    a_id = atom[5]
-#                    n = 0
+        missing = []
+        if per_struct == False:
+            for row in self.header['REMARK 465']:			#missing residues from header
+                tokens = [row[5:8], row[9], row[11:16]]
+                if tokens[2].strip().isdigit():
+                    missing.append((AA_code(tokens[0]), tokens[1], tokens[2]))
+            for row in self.header['REMARK 470']:			#missing CA atoms from header
+                tokens = [row[5:8], row[9], row[10:15], row[17:21], row[22:26]]
+                if tokens[2].strip().isdigit():
+                    if tokens[3] == ' CA ' or tokens[4] == ' CA ':
+                        missing.append((AA_code(tokens[0]), tokens[1], ''.join(c for c in tokens[2] if not c.isalpha())))
         else:
-            missing = m
-##        print("missing: ", len(missing))###########################
+            for ch in self.residues:
+                for res in ch:
+                    if res[4] == 'm':
+                        missing.append((res[2], res[1], res[0]))
         return missing
     
     def non_standard_resi(self):
@@ -348,11 +349,11 @@ class PDB(object):
     
     def is_alpha(self):
         """Return 'True' if structure contains helix."""
-        return 'H' in list(self.ss_for_seq())
+        return 'H' in list(self.pdb_ss)
     
     def is_beta(self):
         """Return 'True' if structure contains strand."""
-        return 'E' in list(self.ss_for_seq())
+        return 'E' in list(self.pdb_ss)
     
     def __select(self, which):
         """Return string list of chosen atom's attribute."""

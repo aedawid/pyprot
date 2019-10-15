@@ -1,4 +1,5 @@
 import sys
+sys.path.append('/Users/adawid/PROJECTS/own/IDP_LLPS/UBQL/code/pyprot')
 import argparse
 from PDB_menager import PDB, read_pdb
 
@@ -12,11 +13,13 @@ def ap_select_chains_from_pdb(filename, output=None, model='0', chain='0'):
     else:
         outfile = sys.stdout
     
-    outfile.write(" MISS:")
-    for i in s.missing_resi():
-        if i[1] == chain:
-            st1=i[0]+" "+i[2]+" "+i[1]+","
-            outfile.write(st1)
+    outfile.write(" NAME:")
+    outfile.write(str(filename[:4]+chain))
+    
+    outfile.write("\n\n MISS:")
+    for i in s.missing:
+        st1=i[0]+" "+str(i[2])+" "+i[1]+","
+        outfile.write(st1)
     
     outfile.write("\n\nNON_A:")
     for i in s.non_standard_resi():
@@ -39,10 +42,9 @@ def ap_select_chains_from_pdb(filename, output=None, model='0', chain='0'):
         st = i[0]+" "+i[1]+" "+i[2]+" "+i[3]+" "+i[4]+" "+i[5]+","
         outfile.write(st)
     
-    c_range = s.chain_resi(chain)
-    st3 = s.seq_from_header()[c_range[0]:c_range[1]]
-    st4 = s.outcome_seq()
-    st5 = s.ss_for_seq()
+    st3 = s.pdb_seq[0]
+    st4 = s.out_seq[0]
+    st5 = s.pdb_ss[0]
     outfile.write("\n\nSEQ_H:")
     outfile.write(st3)
     outfile.write("\n\nSEQ_O:")
