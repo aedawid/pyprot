@@ -40,19 +40,19 @@ def read_LLPSDB(key):
     path="/Users/adawid/PROJECTS/databases/LLPSDB/"
     data=['/5_Uniprot_id', '/0_PID', '/14_DisProt_ID', '/7_Species', '/11_Sequence', '/12_IDR', '/13_LCR']
     vec=[]
-    r=''
     for n1, feature in enumerate(data):
         try:
             with open(path+key+feature, "r") as f:
                 for n2, row in enumerate(f):
+                    r=''
                     if n1 == 0:
                         vec.append([row.strip()])
                     elif n1 == 4:
                         for i in row.strip().split(';'):
                             if i.isalpha():
-                                r += i+" "
+                                r += i
                         vec[n2].append(r)
-                        r=''
+                        vec[n2].append(len(r))
                     else:
                         vec[n2].append(row.strip())
         except:
