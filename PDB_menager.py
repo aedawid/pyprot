@@ -39,14 +39,14 @@ class PDB(object):
         self.atom_type = self.__select(11)
         """Returns string list of atom types for all atoms."""
 
+        self.chains = self._chain_ranges()
+        """Returns dictionary of chains in current structure: eg. ('A':(0, 50), 'B':(51:100))."""
         self.pdb_seq = self._seq_from_header()
         """Returns list of fasta strings for all chains in PDB header: eg. ('MSSGS', 'AGLSH')."""
         self.seq = self._seq_from_struct()
         """Returns list of fasta strings for chains in current structure: eg. ('MSSGS', 'AGLSH')."""
         self.pdb_chains = self._pdb_chains_ranges()
         """Returns dictionary of chains in PDB header: eg. ('A':(0, 50), 'B':(51:100))."""
-        self.chains = self._chain_ranges()
-        """Returns dictionary of chains in current structure: eg. ('A':(0, 50), 'B':(51:100))."""
         self.pdb_missing = self.missing_resi()
         """Returns list of missing residues in PDB header: eg. ()"""
         self.ss = self._ss_for_struct()
@@ -127,7 +127,7 @@ class PDB(object):
         def parse_row(row, n1, n2, n3, n4, c):
             if row[n1] == row[n2]:
                 for num, ch in enumerate(ch_r):
-                    if row[n1] == ch:
+                    if row[n1].upper() == ch:
                         for i in range(ch_r[ch][0], ch_r[ch][1]+1):
                             if int(ids[i]) == int(row[n3:n3+4]) and seq[num][i] == AA_code(row[n4:n4+3]):
                                 for k in range(i+1, int(ch_r[ch][1])+1):
@@ -152,17 +152,23 @@ class PDB(object):
     def _seq_from_header(self):
         """Return full AA seq derived from PDB header (taking missing residues): eg. ('ahagly', 'nanannana')."""
         seq = []
-        ch = self.header['SEQRES'][0].split()[0]
+        ch = self.header['SEQRES'][0].split()[0].upper()
         fasta = ''
         for row in self.header['SEQRES']:
             tokens = row.split()
             for t in tokens[2:]:
-                if tokens[0] != ch:
+                if tokens[0].upper() != ch:
                     seq.append(fasta)
-                    ch = tokens[0]
-                    fasta = AA_code(t)
+                    ch = tokens[0].upper()
+                    if len(tokens) == 3:
+                        fasta = tokens[2].strip()
+                    else:
+                        fasta = AA_code(t)
                 else:
-                    fasta += AA_code(t)
+                    if len(tokens) == 3:
+                        fasta += tokens[2].strip()
+                    else:
+                        fasta += AA_code(t)
         seq.append(fasta)
         return seq
     
@@ -173,8 +179,8 @@ class PDB(object):
         s_range = {}
         first = 0
         for row in self.header['SEQRES']:
-            if not row.split()[0] in c:
-                c.append(row.split()[0])
+            if not row.split()[0].upper() in c:
+                c.append(row.split()[0].upper())
         if len(c) == len(seq):
             for num, i in enumerate(c):
                 s_range[i] = (first, first + len(seq[num])-1, num)
@@ -243,13 +249,13 @@ class PDB(object):
                     elif aa != r_l[num][2]:
                         r_l.insert(num, ('nan', ch, aa, 'X', 'm'))
                         n += 1
-                        if seq_h[num+1] == r_l[num+1][2]:
+                        if seq_h[num+1] == r_l[num+1][2]:###
                             for i in range(0, n):
                                 tmp = list(r_l[num-i])
                                 tmp[0] = r_l[num+1][0]-i-1
                                 r_l[num-i] = tuple(tmp)
                             n = 0
-                    elif num+1 < len(r_l)-1 and seq_h[num+1] != r_l[num+1][2]:
+                    elif num+1 < len(r_l)-1 and seq_h[num+1] != r_l[num+1][2]:###
                         if seq_h[num+1] == r_l[num][2] and seq_h[num+2] == r_l[num+1][2]:
                             r_l.insert(num, (r_l[num][0]-1, ch, aa, 'X', 'm'))
             r_list.append(r_l)
@@ -262,12 +268,12 @@ class PDB(object):
             for row in self.header['REMARK 465']:			#missing residues from header
                 tokens = [row[5:8], row[9], row[11:16]]
                 if tokens[2].strip().isdigit():
-                    missing.append((AA_code(tokens[0]), tokens[1], tokens[2]))
+                    missing.append((AA_code(tokens[0]), tokens[1].upper(), tokens[2]))
             for row in self.header['REMARK 470']:			#missing CA atoms from header
                 tokens = [row[5:8], row[9], row[10:15], row[17:21], row[22:26]]
                 if tokens[2].strip().isdigit():
                     if tokens[3] == ' CA ' or tokens[4] == ' CA ':
-                        missing.append((AA_code(tokens[0]), tokens[1], ''.join(c for c in tokens[2] if not c.isalpha())))
+                        missing.append((AA_code(tokens[0]), tokens[1].upper(), ''.join(c for c in tokens[2] if not c.isalpha())))
         else:
             for ch in self.residues:
                 for res in ch:
@@ -385,7 +391,7 @@ def read_pdb(filename, w_model = '0', w_chain = '0', w_atoms = [], alter = 'A'):
     def parse_line(line, model):
 
         atom = [line[:6], line[6:11], line[12:16], line[17:20],
-        line[21], line[22:26], line[30:38], line[38:46],
+        line[21].upper(), line[22:26], line[30:38], line[38:46],
         line[46:54], line[54:60], line[60:66], line[77:80]]
         if w_chain == '0':                         ##parse all chains
             if not len(w_atoms):                   ###parse all atoms
@@ -394,7 +400,7 @@ def read_pdb(filename, w_model = '0', w_chain = '0', w_atoms = [], alter = 'A'):
                 for at in w_atoms:                 ###parse atoms
                     if line[12:16] == at:
                         model.append(atom)
-        elif line[21] == w_chain:                  ##parse single chain
+        elif line[21].upper() == w_chain:          ##parse single chain
             if not len(w_atoms):
                 model.append(atom)
             else:
@@ -429,7 +435,6 @@ def read_pdb(filename, w_model = '0', w_chain = '0', w_atoms = [], alter = 'A'):
         else:                                              #parse single model
             is_ok = 'false'
             for line in pdb:
-                
                 if is_ok == 'true':
                     if line[:4] == 'ATOM' or line[:6] == "HETATM":
                         if line[16] == ' ' or line[16] == alter:

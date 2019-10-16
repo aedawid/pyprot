@@ -39,7 +39,7 @@ def ap_select_chains_from_pdb(filename, output=None, model='0', chain='0'):
     outfile.write("\n\nCIS_P:")
     for ii in s.header["CISPEP"]:
         i = ii.split()
-        st = i[0]+" "+i[1]+" "+i[2]+" "+i[3]+" "+i[4]+" "+i[5]+","
+        st = i[0]+" "+i[1].upper()+" "+i[2]+" "+i[3]+" "+i[4].upper()+" "+i[5]+","
         outfile.write(st)
     
     st3 = s.pdb_seq[0]
@@ -54,7 +54,8 @@ def ap_select_chains_from_pdb(filename, output=None, model='0', chain='0'):
     outfile.write("\n\n SIZE:")
     outfile.write(str(len(st4)))
     outfile.write("\n\n  RES:")
-    outfile.write(s.header["REMARK   2"][1].split()[1])
+    if len(s.header["REMARK   2"]):
+        outfile.write(s.header["REMARK   2"][1].split()[1])
     outfile.write("\n\n CATH:")
     outfile.write(s.ss_type())
     outfile.write("\n\nTITLE:")
