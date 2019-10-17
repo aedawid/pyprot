@@ -1,4 +1,4 @@
-import os
+import re
 from PDB_menager import AA_ATTRIBUTES
 
 def read_fasta(filename):
@@ -64,5 +64,41 @@ def read_LLPSDB(key):
     except:
         print("ERROR: File %s can't be open!"%str(path+key+'/1_P_name'))
     return LLPSDB
+
+
+def aa_composition(sequence):######################
+    """"""
+    aa=['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
+    counts={}
+    length=len(sequence)
+    for a in aa:
+        counts[a] = sequence.count(a)/float(length)
+        if a=='D' or a=='E' or a=='K' or a=='R' or a=='H':
+            
+        elif a=='N' or a=='Q' or a=='S' or a=='T' or a=='Y':
+            
+        if a=='F' or a=='W' or a=='H' or a=='Y':
+            
+    return counts
+
+
+def search_motif(queries, sequence):
+    """Searches of given as a list sequence motifs in given string sequence.
+       * treats regular expressions in queries
+       Dictionary output: key - motif, @1 - counts, @2+ - index in seq
+    """
+    counts={}
+    for query in queries:
+        s=re.compile(query)
+        for q in s.findall(sequence):
+            n=0
+            if not q in counts.keys():
+                counts[q] = [sequence.count(q)]
+                for i in range(0, counts[q][0]):
+                    position=sequence.find(q, n)
+                    counts[q].append(position)
+                    n=position+len(q)
+    return counts
+
 
 LLPSDB={}
