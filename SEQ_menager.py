@@ -37,7 +37,7 @@ def read_conservation(clustal_aln, skylign):
 
 def read_LLPSDB(key):
     """Reads subset of LLPSDB database. @key is a subset name: DESIG, NATUR, C_ONE, C_TWO, C_MOR, P_DNA, P_RNA, P_PRT"""
-    path="/Users/adawid/PROJECTS/databases/LLPSDB/"
+    path="/Users/adawid/Box/GROUP_data/LLPS-bioinformatics/databases/LLPSDB/"
     data=['/5_Uniprot_id', '/0_PID', '/14_DisProt_ID', '/7_Species', '/11_Sequence', '/12_IDR', '/13_LCR']
     vec=[]
     for n1, feature in enumerate(data):
@@ -66,19 +66,61 @@ def read_LLPSDB(key):
     return LLPSDB
 
 
-def aa_composition(sequence):######################
-    """"""
-    aa=['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
+def aa_composition(sequence):
+    """Prepare statistics based on amino acid sequence."""
     counts={}
     length=len(sequence)
     for a in aa:
-        counts[a] = sequence.count(a)/float(length)
-        if a=='D' or a=='E' or a=='K' or a=='R' or a=='H':
-            
-        elif a=='N' or a=='Q' or a=='S' or a=='T' or a=='Y':
-            
-        if a=='F' or a=='W' or a=='H' or a=='Y':
-            
+        ac = sequence.count(a)
+        if ac != 0:
+            counts[a] = ac/float(length)
+        else:
+            counts[a] = 0.0
+    return counts
+
+
+def aa_pattern(sequence):
+    """Prepare statistics based on amino acid sequence."""
+    hp=['V', 'L', 'I', 'M', 'F', 'C', 'W', 'A']
+    pol=['S', 'D', 'N', 'T', 'E', 'Q', 'H', 'K', 'R', 'Y']
+    pi=['F', 'Y', 'W', 'H', 'R', 'N', 'Q', 'D', 'E']
+    ar=['F', 'Y', 'W', 'H']
+    counts={}
+    for key in ['hp', 'pol', 'pi', 'ch']:
+        counts.setdefault(key, [])
+        counts[key].append(sequence)
+        counts[key].append(0.0)
+    length=len(sequence)
+    for a in aa:
+        if a in hp:
+            counts['hp'][0]=counts['hp'][0].replace(a, "1")
+            counts['hp'][1]+=sequence.count(a)
+        else:
+            counts['hp'][0]=counts['hp'][0].replace(a, "0")
+        if a in pol:
+            counts['pol'][0]=counts['pol'][0].replace(a, "1")
+            counts['pol'][1]+=sequence.count(a)
+        else:
+            counts['pol'][0]=counts['pol'][0].replace(a, "0")
+        if a in pi:
+            counts['pi'][1]+=sequence.count(a)
+            if a in ar:
+                counts['pi'][0]=counts['pi'][0].replace(a, "1")
+            else:
+                counts['pi'][0]=counts['pi'][0].replace(a, "2")
+        else:
+            counts['pi'][0]=counts['pi'][0].replace(a, "0")
+        if a=='D' or a=='E':
+            counts['ch'][0]=counts['ch'][0].replace(a, "1")
+            counts['ch'][1]+=sequence.count(a)
+        elif a=='K' or a=='R' or a=='H':
+            counts['ch'][0]=counts['ch'][0].replace(a, "2")
+            counts['ch'][1]+=sequence.count(a)
+        else:
+            counts['ch'][0]=counts['ch'][0].replace(a, "0")
+    for key in ['hp', 'pol', 'pi', 'ch']:
+        if counts[key][1] != 0.0:
+            counts[key][1]/=float(length)
     return counts
 
 
@@ -100,5 +142,5 @@ def search_motif(queries, sequence):
                     n=position+len(q)
     return counts
 
-
+aa=['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
 LLPSDB={}

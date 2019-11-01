@@ -13,7 +13,7 @@ for db_key in db_keys:
     for protein in db.keys():
         seq=db[protein][4]
         length=db[protein][5]
-        known_motifs=['S\w\wE', 'S\w\wD', 'S\wR', 'G\w\wG\w\w']
+        known_motifs=['S\w\wE', 'S\w\wD', 'S\wR', 'G\w\wG\w\w', 'SYSGYS', 'SYSSYGQS', 'GYNGFG', 'STGGYG', 'GFGNFGTS', 'NKGAII']
         FOUND_motifs=search_motif(known_motifs, seq)
         for motif in FOUND_motifs:
             vec=[]

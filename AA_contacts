@@ -1,0 +1,94 @@
+E = Epol + Eexch + Eind + Edisp
+ss - disulfide covalent bridge
+r - ionic repulsion (electrostatics: point charge): pol
+a - ionic attraction (electrostatics: point charge): pol
+pp - pi-stacking (aromatic, II-order bond): disp
+cp - cation-pi (charge, aromatic, II-order bond):
+HB - hydrogen bond (polarity: polar and nucleofile (-OH)): pol
+vdW - hydrophobicity (dispersion: hydrophobic and aromatic): disp
+
+***possible interaction components due to amino acids side chains character***
+nuc					+					+	+										
+HB/PP								D		A/D	A/D	A/D		A/D	A/D	A/D	A	A	D	D	
+pi				+				+				+		+	+	+	+	+		+	
+arom	.       .       .       +       .       .       .       +       .       +       .       +       .       +      .        .       .       .       .       .
+.	I	V	L	F	C	M	A	W.......G	T	S	Y	P	H......N	Q	D	E	K	R
+I	vdW	vdV	vdW	vdW	vdW	vdW	vdW	vdW													
+V		vdW	vdW	vdW	vdW	vdW	vdW	vdW													
+L			vdW	vdW	vdW	vdW	vdW	vdW	(vdW)	(vdW)		(vdW)									
+F				vdW/pp	vdW	vdW	vdW	vdW/pp				pp		cpi	pp	pp	pp	pp	cp	cp/pp	
+C					ss	vdW															
+M						vdW	vdW	vdW													
+A							.														
+W								vdW/pp		hb	hb	hb/pp		hb/pp	hb/pp	hb/pp	hb/pp	hb/pp	cp	cp/pp	
+_G									.												
+_T										hb	hb	hb		hb	hb	hb	hb	hb	hb	hb	
+_S											hb	hb		hb	hb	hb	hb	hb	hb	hb	
+_Y												hb/pp	(vdW)	hb/cp	hb/pp	hb/pp	hb/pp	hb/pp	hb/cp	hb/cp/pp
+_P													.								
+_H														r/pp	hb/pp	hb/pp	a/hb/pp	a/hb/pp	r/cp	r/cp/pp
+N															hb/pp	hb/pp	hb/pp	hb/pp	hb/cp	h/cp/pp
+Q																hb/pp	hb/pp	hb/pp	hb/cp	h/cp/pp
+D																	r/pp	r/pp	a/h/cp	a/hb/cp/pp
+E																		r/pp	a/h/cp	a/hb/cp/pp
+K																			r	r/cp	
+R																				r/cp/pp
+
+***the most significant contribution to interaction energy due to quantuum calculations***
+nuc					+					+	+										
+HB								D		A/D	A/D	A/D		A/D	A/D	A/D	A	A	D	D	
+pi				+				+				+		+	+	+	+	+		+	
+arom				+				+		+		+		+							
+.	I	V	L	F	C	M	A	W.......G	T	S	Y	P	H......N	Q	D	E	K	R
+I	disp		disp
+V		disp	disp
+L			disp				disp	disp	disp	disp		disp
+F				disp
+C					ss	disp
+M						disp
+A							.
+W								.
+_G									.
+_T										pol	pol
+_S											.
+_Y												disp	disp
+_P													.
+_H														.			pol
+N															.	pol
+Q																.
+D																	.
+E																		.	pol
+K																			.
+R																				.
+
+***interaction energy in water [quantuum calculations for pairs of AA side chains]***
+OH					+					+	+										
+HB								D		A/D	A/D	A/D		A/D	A/D	A/D	A	A	D	D	
+pi				+				+				+		+	+	+	+	+		+	
+arom				+				+		+		+		+							
+.	I	V	L	F	C	M	A	W.......G	T	S	Y	P	H......N	Q	D	E	K	R
+I	-1.32		-1.62																	
+V		-1.70	-1.28																	
+L			-1.85				-1.27	-3.02	-0.96	-1.28		-1.72								
+F				-1.26				X				X								X
+C					.	-0.83														
+M						-1.55														
+A							.													
+W								X				X								X
+G									.											
+T										-4.10	-1.59									
+S											.									
+Y												-3.28	-2.27							X
+P													.							
+H														.			-2.31			
+N															.	-2.55				
+Q																.				
+D																	.			
+E																		.	-7.91	
+K																			.	
+R																				.
+
+***phase separation increases: F-Y < F-K < F-R ~ Y-K < Y-R < Y-(R-D) [pi interactions increases: F < Y < W; other pi: D/E (COO), N/Q (ONH2), R (2[NH2]), H (imidazol)]
+                               p-p   p-c   p-cp  p-c   p-cp  p-cp-a
+***amino acids with HB donor will have favorable electrostatic interactions with the electron rich pi-system: HB vs. polar-pi
+
