@@ -1,4 +1,5 @@
 import re
+import math
 from PDB_menager import AA_ATTRIBUTES
 
 def read_fasta(filename):
@@ -141,6 +142,72 @@ def search_motif(queries, sequence):
                     counts[q].append(position)
                     n=position+len(q)
     return counts
+
+
+def sequence_charge_decoration(sequence):
+    """Calculates SCD parameter of a given sequence.
+       float output: SCD value
+    """
+    N=len(sequence)
+    charge=charge_pattern(sequence)
+    suma = 0.0
+    for n,ch in enumerate(charge):
+        for m in range(n+1,N):
+            if ch != 0.0 and charge[m] != 0.0:
+                suma += (charge[m]*ch*math.sqrt(m-n))
+    return suma/N
+
+
+def overall_charge_symmetry(sequence):
+    """Calculates OCS parameter of a given sequence.
+       float output: OCS value
+    """
+    N=len(sequence)
+    blob=[5, 6]
+    SUM=suma=0.0
+    pos=(sequence.count('K') + sequence.count('R') + sequence.count('H'))/float(N)
+    neg=(sequence.count('D') + sequence.count('E'))/float(N)
+    FCR=pos+neg
+    sigma=(pos-neg)*(pos-neg)/FCR
+    for n in blob:
+        m=n_seg=0
+        suma=0.0
+        length=n
+        while m < N:
+            if m+length >= N:
+                length=N-m
+            frag=sequence[m:m+length]
+            pos=(frag.count('K') + frag.count('R') + frag.count('H'))/float(length)
+            neg=(frag.count('D') + frag.count('E'))/float(length)
+            if pos+neg == 0.0:
+                sig_i=0.0
+            else:
+                sig_i=(pos-neg)*(pos-neg)/float(pos+neg)
+            suma+=(sig_i-sigma)*(sig_i-sigma)
+            n_seg+=1
+            m+=length
+        SUM+=suma/float(n_seg)
+    return (FCR, SUM/float(len(blob)))
+
+def charge_pattern(sequence):
+    seq=list(sequence)
+    charge=[0.0]*len(seq)
+    for m,res in enumerate(seq):
+        if res == 'K' or res == 'R' or res == 'H':
+            charge[m] = 1.0
+        elif res == 'D' or res == 'E':
+            charge[m] = -1.0
+    return charge
+
+
+def write_fasta(seq_list):
+    with open(seq_list, "r") as f:
+        for row in f:
+            tokens=row.split()
+            out=open(tokens[0]+".fasta", 'a')
+            out.write(">"+str(tokens[0])+"\n"+str(tokens[1])+"\n")
+            out.close()
+
 
 aa=['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
 LLPSDB={}
