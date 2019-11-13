@@ -1,48 +1,100 @@
 import sys
 import os
 import argparse
+import operator
 sys.path.append('/Users/adawid/PROJECTS/own/IDP_LLPS/UBQL/code/pyprot')
 
+#print("USAGE:\npython ap_parse_logo.py -f file.logo")
 
-def logo(filename):
-  max_h=ave=max_v=0.0
+def logo(filename, db="SP"):
+  ave=max_v=0.0
   high=[]
-  pattern=''
+  pattern_s=pattern_d=pattern_x=consensus=''
   with open(filename,'r') as f:
     prefix=str(filename).split(".")[0]
-    for row in f:
-        row=row.replace("(", "")
-        row=row.replace(")", "")
-        tokens=row.split()
-        if row.startswith("max expected height"):
-            max_h=float(row.split()[4])
-        elif len(tokens) == 22:
-            high.append(float(tokens[21]))
-            if float(tokens[21]) > max_v:
-               max_v=float(tokens[21])
-            ave+=float(tokens[21])
+    for nn,row in enumerate(f):
+      row=row.replace("(", "")
+      row=row.replace(")", "")
+      tokens=row.split()
+      if len(tokens) == 22:
+        n=0
+        c=[0.0,'']
+        amino=''
+        counts={}
+        for key in ['hp', 'pol', 'pi', 'ar', 'ch']:
+          counts.setdefault(key, 0)
+      ###-pattern-strength-###
+        high.append(float(tokens[21]))
+        if float(tokens[21]) > max_v:
+           max_v=float(tokens[21])
+        ave+=float(tokens[21])
+      ###-pattern-diversity-###
+        for num,aa in enumerate(tokens[1:20]):
+          if float(aa) != 0.0:
+            n+=1				#n - diversity at position [diversity level]
+            amino+=AA[num+1]			#amino - aa above treshold at position [diversity type]
+            if float(aa) > c[0]:
+              c[0] = float(aa)			#c[0] - highest value at position [consensus]
+              c[1] = AA[num+1]			#c[1] - highest aa at position [consensus]
+        pattern_d+=diversity[n]
+        consensus+=c[1]
+        for a in amino:
+          for key in attribute:
+            if a in attribute[key]:
+              counts[key]+=amino.count(a)
+        if (max(counts.items(), key=operator.itemgetter(1))[1]) == 0:
+          s='0'
+        else:
+          s=max(counts.items(), key=operator.itemgetter(1))[0]
+        print(str(nn-2).rjust(4), str(amino).rjust(15), str(counts).rjust(30), str(s).rjust(5))##########################################3
+        pattern_x+=feature[s]
 
   ave=ave/len(high)
   diff=(max_v-ave)/5.0
-  print(max_h, max_v, ave, diff)#####################
-  print(high)########################################
   for i in high:
     if i <= ave:
-        pattern+="0"
+        pattern_s+="0"
     elif i <= ave+diff:
-        pattern+="1"
+        pattern_s+="1"
     elif i <= ave+(2*diff):
-        pattern+="2"
+        pattern_s+="2"
     elif i <= ave+(3*diff):
-        pattern+="3"
+        pattern_s+="3"
     elif i <= ave+(4*diff):
-        pattern+="4"
+        pattern_s+="4"
     else:
-        pattern+="5"
+        pattern_s+="5"
 
   out=open("conservation.txt", 'a')
-  out.write(str(prefix).rjust(20)+" "+str(pattern)+"\n")
+  out.write(str(prefix).rjust(10)+" "+str(db)+"  STRENGTH "+str(pattern_s)+"\n")
+  out.write(str(prefix).rjust(10)+" "+str(db)+" DIVERSITY "+str(pattern_d)+"\n")
+  out.write(str(prefix).rjust(10)+" "+str(db)+" ATTRIBUTE "+str(pattern_x)+"\n")
+  out.write(str(prefix).rjust(10)+" "+str(db)+" CONSENSUS "+str(consensus)+"\n")
   out.close()
+
+feature = {'hp': 'H', 'pol': 'P', 'pi': 'B', 'ar': 'A', 'ch': 'C', '0': '0'}
+
+attribute = {
+    'hp': ['V', 'L', 'I', 'M', 'F', 'C', 'W', 'A'],
+   'pol': ['S', 'N', 'T', 'Q', 'Y'],
+    'pi': ['F', 'Y', 'W', 'H', 'R', 'N', 'Q', 'D', 'E'],
+    'ar': ['F', 'Y', 'W', 'H'],
+    'ch': ['K', 'R', 'H', 'D', 'E']
+}
+
+diversity = {
+    1: '0', 2: '1', 3: '2', 4: '3', 5: '3',
+    6: '4', 7: '4', 8: '4', 9: '4', 10: '4',
+    11: '5', 12: '5', 13: '5', 14: '5', 15: '5',
+    16: '5', 17: '5', 18: '5', 19: '5', 20: '5'
+}
+
+AA = {
+    1: 'A', 2: 'C', 3: 'D', 4: 'E', 5: 'F',
+    6: 'G', 7: 'H', 8: 'I', 9: 'K', 10: 'L',
+    11: 'M', 12: 'N', 13: 'P', 14: 'Q', 15: 'R',
+    16: 'S', 17: 'T', 18: 'V', 19: 'W', 20: 'Y'
+}
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -58,6 +110,13 @@ if __name__ == '__main__':
         dest='logo',
         required=True
     )
+    parser.add_argument(
+        '-db', '--database',
+        help='db used for MSA',
+        metavar='DB',
+        dest='db',
+        required=True
+    )
 
     args = parser.parse_args()
-    logo(args.logo)
+    logo(args.logo, args.db)
