@@ -46,8 +46,10 @@ def logo(filename, db="SP"):
           s='0'
         else:
           s=max(counts.items(), key=operator.itemgetter(1))[0]
-        print(str(nn-2).rjust(4), str(amino).rjust(15), str(counts).rjust(30), str(s).rjust(5))##########################################3
         pattern_x+=feature[s]
+        
+        out2=open(prefix+".txt", 'a')
+        out2.write(str(nn-2).rjust(4)+" "+str(amino).rjust(15)+" "+str(counts).rjust(30)+" "+str(s).rjust(5)+"\n")
 
   ave=ave/len(high)
   diff=(max_v-ave)/5.0
@@ -65,12 +67,13 @@ def logo(filename, db="SP"):
     else:
         pattern_s+="5"
 
-  out=open("conservation.txt", 'a')
+  out=open(prefix+".conservation", 'a')
   out.write(str(prefix).rjust(10)+" "+str(db)+"  STRENGTH "+str(pattern_s)+"\n")
   out.write(str(prefix).rjust(10)+" "+str(db)+" DIVERSITY "+str(pattern_d)+"\n")
   out.write(str(prefix).rjust(10)+" "+str(db)+" ATTRIBUTE "+str(pattern_x)+"\n")
   out.write(str(prefix).rjust(10)+" "+str(db)+" CONSENSUS "+str(consensus)+"\n")
   out.close()
+  out2.close()
 
 feature = {'hp': 'H', 'pol': 'P', 'pi': 'B', 'ar': 'A', 'ch': 'C', '0': '0'}
 
