@@ -78,9 +78,9 @@ def logo(filename, db="SP"):
 feature = {'hp': 'H', 'pol': 'P', 'pi': 'B', 'ar': 'A', 'ch': 'C', '0': '0'}
 
 attribute = {
-    'hp': ['V', 'L', 'I', 'M', 'F', 'C', 'W', 'A'],
+    'hp': ['V', 'L', 'I', 'M', 'C', 'A'],
    'pol': ['S', 'N', 'T', 'Q', 'Y'],
-    'pi': ['F', 'Y', 'W', 'H', 'R', 'N', 'Q', 'D', 'E'],
+    'pi': ['R', 'N', 'Q', 'D', 'E'],
     'ar': ['F', 'Y', 'W', 'H'],
     'ch': ['K', 'R', 'H', 'D', 'E']
 }
