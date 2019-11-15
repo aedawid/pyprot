@@ -13,28 +13,43 @@ def logo(filename, db="SP"):
   nums=[]
   with open(str(prefix+".MSA"), 'r') as f1:
     for line in f1:
-      msa=list(line)
+      msa=list(line.strip())
   with open(str(prefix+".PROFILE"), 'r') as f2:
     for line in f2:
-      profile=list(line)
+      profile=list(line.strip())
   with open(str(prefix+".NUM"), 'r') as f3:
     for line in f3:
       nums.append(line.strip())
+  with open(str(prefix+".FASTA"), 'r') as f4:
+    for line in f4:
+      fasta=list(line.strip())
+  number = [f for f in os.listdir('.') if os.path.isfile(f) and f.startswith(prefix+'_')][0].split('_')[1]
   
   new_profile=['-']*len(msa)
-  for idx, t in nums:
-    new_profile[int(t)]=profile[idx]
-  for idx, t in new_profile:
+  q=0
+  for idx, t in enumerate(nums):
+    new_profile[int(t)-1]=profile[idx]
+  for idx, t in enumerate(new_profile):
     if t != '-':
       cons+=t
       if msa[idx] != '.':
-        seq+=msa[idx]
+        seq+=fasta[q]
+        q+=1
       else:
         seq+='-'
     elif msa[idx] != '.':
       cons+='-'
-      seq+=msa[idx]
-
+      seq+=fasta[q]
+      q+=1
+  
+#  cons2=seq2=''
+#  for jx, j in enumerate(list(cons)):
+#    if j != '-' or list(seq)[jx] != '-':
+#       cons2+=j
+#       seq2+=list(seq)[jx]
+#  cons=cons2
+#  seq=seq2
+  
   ave=max_v=0.0
   high=[]
   pattern_s=pattern_d=pattern_x=consensus=''
@@ -95,28 +110,30 @@ def logo(filename, db="SP"):
         pattern_s+="5"
 
   if len(cons) != len(pattern_s):
-    strength=diversity=attribute=[]
+    streng=[]
+    divers=[]
+    attrib=[]
     idx=0
     for i in list(cons):
       if i != '-':
-        strength.append(list(pattern_s)[idx])
-        diversity.append(list(pattern_d)[idx])
-        attribute.append(list(pattern_x)[idx])
+        streng.append(list(pattern_s)[idx])
+        divers.append(list(pattern_d)[idx])
+        attrib.append(list(pattern_x)[idx])
         idx+=1
       else:
-        strength.append('-')
-        diversity.append('-')
-        attribute.append('-')
-    pattern_s=strength.join()
-    pattern_d=diversity.join()
-    pattern_x=attribute.join()
+        streng.append('-')
+        divers.append('-')
+        attrib.append('-')
+    pattern_s=''.join(streng)
+    pattern_d=''.join(divers)
+    pattern_x=''.join(attrib)
 
   out=open(prefix+".conservation", 'a')
-  out.write(str(prefix).rjust(10)+" "+str(db)+"  SEQUENCE "+str(seq)+"\n")
-  out.write(str(prefix).rjust(10)+" "+str(db)+" CONSENSUS "+str(cons)+"\n")
-  out.write(str(prefix).rjust(10)+" "+str(db)+"  STRENGTH "+str(pattern_s)+"\n")
-  out.write(str(prefix).rjust(10)+" "+str(db)+" DIVERSITY "+str(pattern_d)+"\n")
-  out.write(str(prefix).rjust(10)+" "+str(db)+" ATTRIBUTE "+str(pattern_x)+"\n")
+  out.write(str(prefix).rjust(10)+" "+str(db)+" "+str(number).rjust(5)+"  SEQUENCE "+str(seq)+"\n")
+  out.write(str(prefix).rjust(10)+" "+str(db)+" "+str(number).rjust(5)+" CONSENSUS "+str(cons)+"\n")
+  out.write(str(prefix).rjust(10)+" "+str(db)+" "+str(number).rjust(5)+"  STRENGTH "+pattern_s+"\n")
+  out.write(str(prefix).rjust(10)+" "+str(db)+" "+str(number).rjust(5)+" DIVERSITY "+pattern_d+"\n")
+  out.write(str(prefix).rjust(10)+" "+str(db)+" "+str(number).rjust(5)+" ATTRIBUTE "+pattern_x+"\n")
   out.close()
   out2.close()
 
