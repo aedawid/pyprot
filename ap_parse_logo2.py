@@ -24,7 +24,7 @@ def logo(filename, db="SP"):
     for line in f4:
       fasta=list(line.strip())
   number = [f for f in os.listdir('.') if os.path.isfile(f) and f.startswith(prefix+'_')][0].split('_')[1]
-  
+  print("HERE: ", len(msa), len(profile), len(nums), len(fasta))#################################
   new_profile=['-']*len(msa)
   q=0
   for idx, t in enumerate(nums):
@@ -39,6 +39,7 @@ def logo(filename, db="SP"):
         seq+='-'
     elif msa[idx] != '.':
       cons+='-'
+      print(len(new_profile), idx, len(fasta), q)#################################
       seq+=fasta[q]
       q+=1
   
@@ -71,7 +72,7 @@ def logo(filename, db="SP"):
            max_v=float(tokens[21])
         ave+=float(tokens[21])
       ###-pattern-diversity-###
-        for num,aa in enumerate(tokens[1:20]):
+        for num,aa in enumerate(tokens[1:21]):
           if float(aa) != 0.0:
             n+=1				#n - diversity at position [diversity level]
             amino+=AA[num+1]			#amino - aa above treshold at position [diversity type]
