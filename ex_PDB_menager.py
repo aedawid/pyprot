@@ -1,5 +1,5 @@
 import sys
-from PDB_menager import PDB, read_pdb, read_fasta, AA_code
+from PDB_menager import PDB, read_pdb, AA_code
 
 
 #print(AA_code('ALA'))
@@ -8,8 +8,8 @@ from PDB_menager import PDB, read_pdb, read_fasta, AA_code
 #print(AA_code('KKK'))
 
 
-s = PDB(read_pdb('2JY6.pdb', '1', 'B', []))
-print(s.seq_from_header())
+s = PDB(read_pdb('1YYB.pdb'))
+print(s.pdb_seq[0])
 #print(s.seq_ranges())
 #print(s.missing_resi())
 #print(s.outcome_seq())

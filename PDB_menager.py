@@ -161,12 +161,18 @@ class PDB(object):
                     seq.append(fasta)
                     ch = tokens[0].upper()
                     if len(tokens) == 3:
-                        fasta = tokens[2].strip()
+                        if len(t.strip()) == 3:
+                          fasta += AA_code(t)
+                        else:
+                          fasta += tokens[2].strip()
                     else:
                         fasta = AA_code(t)
                 else:
                     if len(tokens) == 3:
-                        fasta += tokens[2].strip()
+                        if len(t.strip()) == 3:
+                          fasta += AA_code(t)
+                        else:
+                          fasta += tokens[2].strip()
                     else:
                         fasta += AA_code(t)
         seq.append(fasta)
