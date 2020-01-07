@@ -128,12 +128,12 @@ class PDB(object):
             if row[n1] == row[n2]:
                 for num, ch in enumerate(ch_r):
                     if row[n1].upper() == ch:
-                        for i in range(ch_r[ch][0], ch_r[ch][1]+1):
-                            if int(ids[i]) == int(row[n3:n3+4]) and seq[num][i] == AA_code(row[n4:n4+3]):
-                                for k in range(i+1, int(ch_r[ch][1])+1):
+                        for t, i in enumerate(range(ch_r[ch][0], ch_r[ch][1]+1)):
+                            if int(ids[i]) == int(row[n3:n3+4]) and seq[num][t] == AA_code(row[n4:n4+3]):
+                                for tt, k in enumerate(range(i, int(ch_r[ch][1])+1)):
                                     if int(ids[k]) == int(row[23:27]):
                                         s = list(ss[num])
-                                        for ii in range(i, k):
+                                        for ii in range(t, t+tt):
                                             s[ii] = c
                                         ss[num] = "".join(s)
                                         break
@@ -247,7 +247,7 @@ class PDB(object):
             r_l = sorted(r_l, key = lambda tup: (tup[1], tup[0]))
             
             seq_h = list(self.pdb_seq[self.pdb_chains[ch][2]])
-            if len(r_l) != len(seq_h):
+            if self.chains[ch][1]+1 - self.chains[ch][0] != len(seq_h):
                 n = 0
                 for num, aa in enumerate(seq_h):
                     if num >= len(r_l):

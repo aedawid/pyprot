@@ -78,9 +78,9 @@ class Structure(object):
         if isinstance(atoms, str):
             for ch in self.chains:
                 if ch == atoms:
-                    subset = structure[self.chains[ch][0]:self.chains[ch][1]]
+                    subset = self.structure[self.chains[ch][0]:self.chains[ch][1]+1]
         if isinstance(atoms, tuple):
-            subset = structure[atom[0]:atom[1]]
+            subset = self.structure[atom[0]:atom[1]]
         else:
             for atom in self.structure:
                 if atom.atom_name in atoms:
